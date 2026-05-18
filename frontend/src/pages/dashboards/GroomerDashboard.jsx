@@ -25,7 +25,7 @@ function GroomerDashboard() {
           <div className="section-kicker">Groomer dashboard</div>
           <h1 className="font-display text-4xl text-white">Stay focused on every pet and every slot.</h1>
         </div>
-        <img src="/images/image-7.jpg" alt="Groomer dashboard art" className="h-32 w-full rounded-[2rem] object-cover md:w-72" />
+        <img src="/images/image-7.jpg" alt="Groomer dashboard art" className="h-32 w-full rounded-4xl object-cover md:w-72" />
       </div>
 
       <div className="dashboard-grid">
@@ -67,7 +67,7 @@ function GroomerDashboard() {
                             onClick={() => updateAppointment(item.id, { status })}
                             className={`rounded-full px-3 py-2 text-xs uppercase tracking-[0.18em] transition ${
                               item.status === status
-                                ? 'bg-[var(--color-peach)] text-[var(--color-ink)]'
+                                ? 'bg-(--color-peach) text-[var(--color-ink)]'
                                 : 'border border-white/10 text-white/65 hover:text-white'
                             }`}
                           >

@@ -128,7 +128,7 @@ function CustomerDashboard() {
               <div className="panel-heading">4-step booking wizard</div>
               <div className="mb-8 grid gap-3 md:grid-cols-4">
                 {wizardSteps.map((label, index) => (
-                  <div key={label} className={`rounded-[1.25rem] border px-4 py-4 text-sm ${step === index ? 'border-[var(--color-peach)] bg-[var(--color-peach)]/10 text-white' : 'border-white/10 text-white/50'}`}>
+                  <div key={label} className={`rounded-[1.25rem] border px-4 py-4 text-sm ${step === index ? 'border-[var(--color-peach)] bg-(--color-peach)/10 text-white' : 'border-white/10 text-white/50'}`}>
                     <div className="text-xs uppercase tracking-[0.18em]">Step {index + 1}</div>
                     <div className="mt-1 font-semibold">{label}</div>
                   </div>
@@ -143,7 +143,7 @@ function CustomerDashboard() {
                         key={service.id}
                         type="button"
                         onClick={() => setBooking({ ...booking, service: service.name })}
-                        className={`rounded-[1.75rem] border p-5 text-left transition ${booking.service === service.name ? 'border-[var(--color-peach)] bg-[var(--color-peach)]/10' : 'border-white/10 bg-white/5'}`}
+                        className={`rounded-[1.75rem] border p-5 text-left transition ${booking.service === service.name ? 'border-[var(--color-peach)] bg-(--color-peach)/10' : 'border-white/10 bg-white/5'}`}
                       >
                         <div className="text-xl font-semibold text-white">{service.name}</div>
                         <div className="mt-2 text-sm text-white/55">{service.duration} - ${service.price}</div>
@@ -165,7 +165,7 @@ function CustomerDashboard() {
                           key={pet.id}
                           type="button"
                           onClick={() => setBooking({ ...booking, petId: pet.id })}
-                          className={`rounded-[1.75rem] border p-5 text-left transition ${booking.petId === pet.id ? 'border-[var(--color-peach)] bg-[var(--color-peach)]/10' : 'border-white/10 bg-white/5'}`}
+                          className={`rounded-[1.75rem] border p-5 text-left transition ${booking.petId === pet.id ? 'border-[var(--color-peach)] bg-(--color-peach)/10' : 'border-white/10 bg-white/5'}`}
                         >
                           <div className="text-xl font-semibold text-white">{pet.name}</div>
                           <div className="mt-2 text-sm text-white/55">{pet.breed} - {pet.age}</div>
