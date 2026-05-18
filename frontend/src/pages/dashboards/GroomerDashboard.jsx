@@ -67,7 +67,7 @@ function GroomerDashboard() {
                             onClick={() => updateAppointment(item.id, { status })}
                             className={`rounded-full px-3 py-2 text-xs uppercase tracking-[0.18em] transition ${
                               item.status === status
-                                ? 'bg-(--color-peach) text-[var(--color-ink)]'
+                                ? 'bg-(--color-peach) text-(--color-ink)'
                                 : 'border border-white/10 text-white/65 hover:text-white'
                             }`}
                           >
