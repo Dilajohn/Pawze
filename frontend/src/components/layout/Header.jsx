@@ -47,8 +47,8 @@ function Header() {
   return (
     <header className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-300 ${shellClass}`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link to="/" onClick={closeMenus} className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--color-mint)] to-[var(--color-peach)] text-[var(--color-ink)] shadow-lg shadow-[var(--color-peach)]/20">
+          <Link to="/" onClick={closeMenus} className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-(--color-mint) to-(--color-peach) text-(--color-ink) shadow-lg shadow-(--color-peach)/20">
             <PawPrint size={20} />
           </div>
           <div>
@@ -68,10 +68,10 @@ function Header() {
         <div className="hidden items-center gap-3 lg:flex">
           {currentUser ? (
             <>
-              <Link
+                <Link
                 to={getDashboardPath(currentUser.role)}
                 onClick={closeMenus}
-                className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/85 transition hover:border-[var(--color-peach)]/50 hover:text-white"
+                className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/85 transition hover:border-(--color-peach)/50 hover:text-white"
               >
                 Dashboard
               </Link>
@@ -83,8 +83,8 @@ function Header() {
                 <Bell size={18} />
                 {lowStockItems.length > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-(--color-peach) px-1 text-[10px] font-semibold text-[var(--color-ink)]">
-                    {lowStockItems.length}
-                  </span>
+                      {lowStockItems.length}
+                    </span>
                 )}
               </button>
               <div className="relative">
@@ -101,7 +101,7 @@ function Header() {
                   <ChevronDown size={16} className="text-white/50" />
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-3 w-56 rounded-3xl border border-white/10 bg-[var(--color-panel)] p-3 shadow-2xl shadow-black/20">
+                  <div className="absolute right-0 mt-3 w-56 rounded-3xl border border-white/10 bg-(--color-panel) p-3 shadow-2xl shadow-black/20">
                     <NavLink
                       to={getDashboardPath(currentUser.role)}
                       onClick={closeMenus}
