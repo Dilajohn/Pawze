@@ -82,7 +82,7 @@ function Header() {
               >
                 <Bell size={18} />
                 {lowStockItems.length > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-(--color-peach) px-1 text-[10px] font-semibold text-[var(--color-ink)]">
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-(--color-peach) px-1 text-[10px] font-semibold text-(--color-ink)">
                       {lowStockItems.length}
                     </span>
                 )}
