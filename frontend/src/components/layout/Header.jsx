@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Menu, PawPrint, User } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, Menu, PawPrint, User, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext.jsx'
@@ -20,103 +20,88 @@ function Header() {
   const isLanding = location.pathname === '/'
 
   useEffect(() => {
-    function onScroll() {
-      setIsScrolled(window.scrollY > 24)
-    }
-
+    function onScroll() { setIsScrolled(window.scrollY > 24) }
     onScroll()
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  function closeMenus() {
-    setMobileOpen(false)
-    setMenuOpen(false)
-  }
+  function closeMenus() { setMobileOpen(false); setMenuOpen(false) }
+  function handleLogout() { closeMenus(); logout(); navigate('/') }
 
-  function handleLogout() {
-    closeMenus()
-    logout()
-    navigate('/')
-  }
-
-  const shellClass = isLanding && !isScrolled
-    ? 'border-white/10 bg-transparent'
-    : 'border-white/10 bg-[rgba(12,13,18,0.78)] backdrop-blur-xl shadow-2xl shadow-black/20'
+  const scrolled = isScrolled || !isLanding
 
   return (
-    <header className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-300 ${shellClass}`}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link to="/" onClick={closeMenus} className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-(--color-mint) to-(--color-peach) text-(--color-ink) shadow-lg shadow-(--color-peach)/20">
-            <PawPrint size={20} />
+    <header style={{
+      position: 'fixed', inset: '0 0 auto 0', zIndex: 50,
+      borderBottom: '1px solid rgba(245,240,232,0.08)',
+      background: scrolled ? 'rgba(10,11,15,0.82)' : 'transparent',
+      backdropFilter: scrolled ? 'blur(20px)' : 'none',
+      transition: 'background 300ms ease, backdrop-filter 300ms ease',
+    }}>
+      <div style={{ maxWidth: '80rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem' }}>
+
+        {/* logo */}
+        <Link to="/" onClick={closeMenus} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+          <div style={{
+            width: '2.75rem', height: '2.75rem', borderRadius: '1rem',
+            background: 'linear-gradient(135deg,var(--sage),var(--warm))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(122,170,106,0.28)',
+          }}>
+            <PawPrint size={18} color="var(--ink)" />
           </div>
           <div>
-            <div className="font-display text-xl font-bold tracking-tight text-white">Pawze</div>
-            <div className="text-xs uppercase tracking-[0.28em] text-white/50">Tail-wag workflows</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: '1.2rem', fontWeight: 700, color: '#fff', lineHeight: 1 }}>Pawze</div>
+            <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.28em', color: 'rgba(245,240,232,0.45)', lineHeight: 1 }}>Tail-wag workflows</div>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-8 lg:flex">
+        {/* desktop nav */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }} className="hidden lg:flex">
           {navItems.map((item) => (
-            <a key={item.label} href={item.href} onClick={closeMenus} className="text-sm text-white/70 transition hover:text-white">
+            <a key={item.label} href={item.href} onClick={closeMenus} style={{ fontSize: '0.9rem', color: 'rgba(245,240,232,0.65)', textDecoration: 'none', transition: 'color 180ms' }}
+              onMouseEnter={e => e.target.style.color='#fff'} onMouseLeave={e => e.target.style.color='rgba(245,240,232,0.65)'}>
               {item.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        {/* desktop actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="hidden lg:flex">
           {currentUser ? (
             <>
-                <Link
-                to={getDashboardPath(currentUser.role)}
-                onClick={closeMenus}
-                className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/85 transition hover:border-(--color-peach)/50 hover:text-white"
-              >
+              <Link to={getDashboardPath(currentUser.role)} onClick={closeMenus}
+                style={{ borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.55rem 1.1rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.85)', textDecoration: 'none', transition: 'border-color 180ms' }}>
                 Dashboard
               </Link>
-              <button
-                type="button"
-                className="relative rounded-full border border-white/10 p-3 text-white/70 transition hover:text-white"
-                aria-label="Notifications"
-              >
-                <Bell size={18} />
+              <button type="button" style={{ position: 'relative', borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.6rem', color: 'rgba(245,240,232,0.7)', background: 'none', cursor: 'pointer' }} aria-label="Notifications">
+                <Bell size={17} />
                 {lowStockItems.length > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-(--color-peach) px-1 text-[10px] font-semibold text-(--color-ink)">
-                      {lowStockItems.length}
-                    </span>
+                  <span style={{ position: 'absolute', top: '-3px', right: '-3px', width: '1.2rem', height: '1.2rem', borderRadius: '999px', background: 'var(--warm)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700, color: 'var(--ink)' }}>
+                    {lowStockItems.length}
+                  </span>
                 )}
               </button>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen((value) => !value)}
-                  className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-left"
-                >
-                  <img src={currentUser.avatar} alt={currentUser.name} className="h-9 w-9 rounded-full object-cover" />
-                  <div className="leading-tight">
-                    <div className="text-sm font-medium text-white">{currentUser.name}</div>
-                    <div className="text-xs uppercase tracking-[0.2em] text-white/45">{currentUser.role}</div>
+              <div style={{ position: 'relative' }}>
+                <button type="button" onClick={() => setMenuOpen(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', background: 'rgba(255,255,255,0.04)', padding: '0.45rem 0.75rem 0.45rem 0.45rem', cursor: 'pointer' }}>
+                  <img src={currentUser.avatar} alt={currentUser.name} style={{ width: '2.2rem', height: '2.2rem', borderRadius: '999px', objectFit: 'cover' }} />
+                  <div style={{ lineHeight: 1.2, textAlign: 'left' }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 500, color: '#fff' }}>{currentUser.name}</div>
+                    <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(245,240,232,0.4)' }}>{currentUser.role}</div>
                   </div>
-                  <ChevronDown size={16} className="text-white/50" />
+                  <ChevronDown size={15} color="rgba(245,240,232,0.5)" />
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-3 w-56 rounded-3xl border border-white/10 bg-(--color-panel) p-3 shadow-2xl shadow-black/20">
-                    <NavLink
-                      to={getDashboardPath(currentUser.role)}
-                      onClick={closeMenus}
-                      className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm text-white/80 transition hover:bg-white/5 hover:text-white"
-                    >
-                      <User size={16} />
-                      Open dashboard
+                  <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 0.75rem)', width: '14rem', borderRadius: '1.5rem', border: '1px solid rgba(245,240,232,0.1)', background: 'var(--panel)', padding: '0.6rem', boxShadow: '0 24px 64px rgba(0,0,0,0.5)', zIndex: 100 }}>
+                    <NavLink to={getDashboardPath(currentUser.role)} onClick={closeMenus}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderRadius: '1rem', padding: '0.75rem 0.85rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.8)', textDecoration: 'none' }}>
+                      <User size={15} /> Open dashboard
                     </NavLink>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm text-white/80 transition hover:bg-white/5 hover:text-white"
-                    >
-                      <LogOut size={16} />
-                      Sign out
+                    <button type="button" onClick={handleLogout}
+                      style={{ display: 'flex', width: '100%', alignItems: 'center', gap: '0.6rem', borderRadius: '1rem', padding: '0.75rem 0.85rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.8)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                      <LogOut size={15} /> Sign out
                     </button>
                   </div>
                 )}
@@ -124,58 +109,49 @@ function Header() {
             </>
           ) : (
             <>
-              <Link to="/login" onClick={closeMenus} className="text-sm text-white/70 transition hover:text-white">
-                Log in
-              </Link>
-              <Link to="/register" onClick={closeMenus} className="button-primary">
-                Get started
-              </Link>
+              <Link to="/login" onClick={closeMenus} style={{ fontSize: '0.9rem', color: 'rgba(245,240,232,0.65)', textDecoration: 'none' }}>Log in</Link>
+              <Link to="/register" onClick={closeMenus} className="button-primary" style={{ padding: '0.65rem 1.3rem', fontSize: '0.88rem' }}>Get started</Link>
             </>
           )}
         </div>
 
-        <button
-          type="button"
-          className="rounded-full border border-white/10 p-3 text-white lg:hidden"
-          onClick={() => setMobileOpen((value) => !value)}
-          aria-label="Open navigation"
-        >
-          <Menu size={18} />
+        {/* mobile toggle */}
+        <button type="button"
+          onClick={() => setMobileOpen(v => !v)}
+          style={{ borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.6rem', color: '#fff', background: 'none', cursor: 'pointer' }}
+          className="lg:hidden" aria-label="Toggle nav">
+          {mobileOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
       </div>
 
+      {/* mobile menu */}
       {mobileOpen && (
-        <div className="border-t border-white/10 bg-[rgba(12,13,18,0.96)] px-4 py-4 lg:hidden">
-          <div className="flex flex-col gap-3">
+        <div style={{ borderTop: '1px solid rgba(245,240,232,0.08)', background: 'rgba(10,11,15,0.96)', padding: '1rem 1.5rem' }} className="lg:hidden">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {navItems.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                onClick={closeMenus}
-                className="rounded-2xl px-3 py-3 text-white/80 transition hover:bg-white/5"
-              >
+              <a key={item.label} href={item.href} onClick={closeMenus}
+                style={{ borderRadius: '1rem', padding: '0.75rem 1rem', color: 'rgba(245,240,232,0.8)', textDecoration: 'none', display: 'block' }}>
                 {item.label}
               </a>
             ))}
             {currentUser ? (
               <>
-                <Link
-                  to={getDashboardPath(currentUser.role)}
-                  onClick={closeMenus}
-                  className="rounded-2xl bg-white/5 px-3 py-3 text-white"
-                >
+                <Link to={getDashboardPath(currentUser.role)} onClick={closeMenus}
+                  style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
                   Dashboard
                 </Link>
-                <button type="button" onClick={handleLogout} className="rounded-2xl border border-white/10 px-3 py-3 text-left text-white/80">
+                <button type="button" onClick={handleLogout}
+                  style={{ borderRadius: '1rem', border: '1px solid rgba(245,240,232,0.1)', padding: '0.75rem 1rem', color: 'rgba(245,240,232,0.8)', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
                   Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" onClick={closeMenus} className="rounded-2xl bg-white/5 px-3 py-3 text-white">
+                <Link to="/login" onClick={closeMenus}
+                  style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
                   Log in
                 </Link>
-                <Link to="/register" onClick={closeMenus} className="button-primary text-center">
+                <Link to="/register" onClick={closeMenus} className="button-primary" style={{ textAlign: 'center' }}>
                   Create account
                 </Link>
               </>
