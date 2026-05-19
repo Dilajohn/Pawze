@@ -6,7 +6,6 @@ import { useApp } from '../context/AppContext.jsx'
 const demoRoles = [
   { label: 'Admin', role: 'admin', desc: 'Full salon control' },
   { label: 'Groomer', role: 'groomer', desc: 'Schedule & notes' },
-  { label: 'Customer', role: 'customer', desc: 'Book & track pets' },
 ]
 
 function LoginPage() {
@@ -44,11 +43,11 @@ function LoginPage() {
           <div className="section-kicker">Welcome back</div>
           <h1 style={{ margin: '0.4rem 0 0.5rem', fontFamily: "'Playfair Display',serif", fontSize: '2.2rem', color: '#fff' }}>Log in to Pawze</h1>
           <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--muted)' }}>
-            Continue to your dashboard or use a demo role to explore the full product instantly.
+            Staff members sign in here after the admin creates their account and assigns an initial password.
           </p>
 
           {/* demo buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.6rem', marginBottom: '1.5rem' }}>
             {demoRoles.map((item) => (
               <button key={item.role} type="button" onClick={() => handleDemo(item.role)}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', borderRadius: '1.25rem', padding: '0.85rem 0.9rem', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'border-color 180ms, background 180ms' }}
@@ -84,8 +83,8 @@ function LoginPage() {
           </form>
 
           <p style={{ marginTop: '1.5rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.5)' }}>
-            New to Pawze?{' '}
-            <Link to="/register" style={{ color: 'var(--warm)', textDecoration: 'none' }}>Create an account</Link>
+            Customers do not need a dashboard.{' '}
+            <Link to="/book" style={{ color: 'var(--warm)', textDecoration: 'none' }}>Book a dog appointment</Link>
           </p>
         </div>
 
@@ -96,7 +95,7 @@ function LoginPage() {
             <div className="section-kicker">Demo credentials</div>
             <div style={{ marginTop: '0.5rem', fontFamily: "'Playfair Display',serif", fontSize: '2rem', color: '#fff', lineHeight: 1.1 }}>No typing needed.</div>
             <p style={{ marginTop: '0.75rem', fontSize: '0.9rem', lineHeight: 1.7, color: 'rgba(245,240,232,0.7)', maxWidth: '24rem' }}>
-              Quick demo buttons sign you in as an admin, groomer, or customer and preserve your session automatically.
+              Quick demo buttons sign you in as admin or groomer, while customer appointments stay on the public booking flow.
             </p>
           </div>
         </div>

@@ -45,7 +45,7 @@ export function AppProvider({ children }) {
   function getDashboardPath(role) {
     if (role === 'admin') return '/admin'
     if (role === 'groomer') return '/groomer'
-    return '/customer'
+    return '/book'
   }
 
   function syncCurrentUser(updatedUsers, nextId = currentUser?.id) {
@@ -67,11 +67,19 @@ export function AppProvider({ children }) {
       return { ok: false, message: 'Incorrect email or password.' }
     }
 
+    if (user.role === 'customer') {
+      return { ok: false, message: 'Customers use the public dog booking page instead of the staff portal.' }
+    }
+
     setCurrentUser(user)
     return { ok: true, user }
   }
 
   function loginWithDemo(role) {
+    if (role === 'customer') {
+      return { ok: false, message: 'Customers use the booking page. Staff demo access is for admin and groomer only.' }
+    }
+
     const user = data.users.find((entry) => entry.role === role)
 
     if (!user) {
@@ -82,24 +90,11 @@ export function AppProvider({ children }) {
     return { ok: true, user }
   }
 
-  function register(payload) {
-    const exists = data.users.some((user) => user.email.toLowerCase() === payload.email.toLowerCase())
-
-    if (exists) {
-      return { ok: false, message: 'An account with that email already exists.' }
+  function register() {
+    return {
+      ok: false,
+      message: 'Self-service registration is disabled. Customers can book from the public booking page, and staff accounts are created by the admin.',
     }
-
-    const user = {
-      id: uid('user'),
-      avatar: '/images/animal-shelter.jpg',
-      location: payload.location || 'Metro Manila',
-      ...payload,
-    }
-
-    const nextUsers = [...data.users, user]
-    setData({ ...data, users: nextUsers })
-    setCurrentUser(user)
-    return { ok: true, user }
   }
 
   function logout() {
@@ -111,6 +106,58 @@ export function AppProvider({ children }) {
       ...prev,
       appointments: [{ id: uid('appt'), ...appointment }, ...prev.appointments],
     }))
+  }
+
+  function createStaffAccount(payload) {
+    if (currentUser?.role !== 'admin') {
+      return { ok: false, message: 'Only admins can create staff accounts.' }
+    }
+
+    const exists = data.users.some((user) => user.email.toLowerCase() === payload.email.toLowerCase())
+
+    if (exists) {
+      return { ok: false, message: 'An account with that email already exists.' }
+    }
+
+    if (!['admin', 'groomer'].includes(payload.role)) {
+      return { ok: false, message: 'Only staff roles can be created here.' }
+    }
+
+    const user = {
+      id: uid('user'),
+      avatar: payload.role === 'admin' ? '/images/animal-shelter.jpg' : '/images/image-7.jpg',
+      location: payload.location || 'Metro Manila',
+      mustChangePassword: true,
+      ...payload,
+    }
+
+    setData((prev) => ({
+      ...prev,
+      users: [...prev.users, user],
+    }))
+
+    return { ok: true, user }
+  }
+
+  function resetUserPassword(userId, nextPassword) {
+    if (currentUser?.role !== 'admin') {
+      return { ok: false, message: 'Only admins can reset staff passwords.' }
+    }
+
+    const target = data.users.find((user) => user.id === userId)
+
+    if (!target) {
+      return { ok: false, message: 'User not found.' }
+    }
+
+    const nextUsers = data.users.map((user) =>
+      user.id === userId ? { ...user, password: nextPassword, mustChangePassword: true } : user,
+    )
+
+    setData({ ...data, users: nextUsers })
+    syncCurrentUser(nextUsers)
+
+    return { ok: true, password: nextPassword }
   }
 
   function updateAppointment(id, updates) {
@@ -200,6 +247,8 @@ export function AppProvider({ children }) {
         loginWithDemo,
         register,
         logout,
+        createStaffAccount,
+        resetUserPassword,
         addAppointment,
         updateAppointment,
         deleteAppointment,

@@ -6,9 +6,9 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
+import PublicBookingPage from './pages/booking/PublicBookingPage.jsx'
 import AdminDashboard from './pages/dashboards/AdminDashboard.jsx'
 import GroomerDashboard from './pages/dashboards/GroomerDashboard.jsx'
-import CustomerDashboard from './pages/dashboards/CustomerDashboard.jsx'
 
 function RoleHomeRedirect() {
   const { currentUser, getDashboardPath } = useApp()
@@ -30,6 +30,7 @@ function AppFrame() {
       <main className={isLanding ? '' : 'pt-24'}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/book" element={<PublicBookingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/dashboard" element={<RoleHomeRedirect />} />
@@ -49,14 +50,7 @@ function AppFrame() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/customer"
-            element={
-              <ProtectedRoute allowedRoles={['customer']}>
-                <CustomerDashboard />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/customer" element={<Navigate to="/book" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

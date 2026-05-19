@@ -71,9 +71,12 @@ function Header() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="hidden lg:flex">
           {currentUser ? (
             <>
-              <Link to={getDashboardPath(currentUser.role)} onClick={closeMenus}
-                style={{ borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.55rem 1.1rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.85)', textDecoration: 'none', transition: 'border-color 180ms' }}>
-                Dashboard
+              <Link
+                to={currentUser.role === 'customer' ? '/book' : getDashboardPath(currentUser.role)}
+                onClick={closeMenus}
+                style={{ borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.55rem 1.1rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.85)', textDecoration: 'none', transition: 'border-color 180ms' }}
+              >
+                {currentUser.role === 'customer' ? 'Book appointment' : 'Dashboard'}
               </Link>
               <button type="button" style={{ position: 'relative', borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.6rem', color: 'rgba(245,240,232,0.7)', background: 'none', cursor: 'pointer' }} aria-label="Notifications">
                 <Bell size={17} />
@@ -95,9 +98,9 @@ function Header() {
                 </button>
                 {menuOpen && (
                   <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 0.75rem)', width: '14rem', borderRadius: '1.5rem', border: '1px solid rgba(245,240,232,0.1)', background: 'var(--panel)', padding: '0.6rem', boxShadow: '0 24px 64px rgba(0,0,0,0.5)', zIndex: 100 }}>
-                    <NavLink to={getDashboardPath(currentUser.role)} onClick={closeMenus}
+                    <NavLink to={currentUser.role === 'customer' ? '/book' : getDashboardPath(currentUser.role)} onClick={closeMenus}
                       style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderRadius: '1rem', padding: '0.75rem 0.85rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.8)', textDecoration: 'none' }}>
-                      <User size={15} /> Open dashboard
+                      <User size={15} /> {currentUser.role === 'customer' ? 'Open booking' : 'Open dashboard'}
                     </NavLink>
                     <button type="button" onClick={handleLogout}
                       style={{ display: 'flex', width: '100%', alignItems: 'center', gap: '0.6rem', borderRadius: '1rem', padding: '0.75rem 0.85rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.8)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
@@ -109,8 +112,8 @@ function Header() {
             </>
           ) : (
             <>
-              <Link to="/login" onClick={closeMenus} style={{ fontSize: '0.9rem', color: 'rgba(245,240,232,0.65)', textDecoration: 'none' }}>Log in</Link>
-              <Link to="/register" onClick={closeMenus} className="button-primary" style={{ padding: '0.65rem 1.3rem', fontSize: '0.88rem' }}>Get started</Link>
+              <Link to="/login" onClick={closeMenus} style={{ fontSize: '0.9rem', color: 'rgba(245,240,232,0.65)', textDecoration: 'none' }}>Staff log in</Link>
+              <Link to="/book" onClick={closeMenus} className="button-primary" style={{ padding: '0.65rem 1.3rem', fontSize: '0.88rem' }}>Book now</Link>
             </>
           )}
         </div>
@@ -136,9 +139,9 @@ function Header() {
             ))}
             {currentUser ? (
               <>
-                <Link to={getDashboardPath(currentUser.role)} onClick={closeMenus}
+                <Link to={currentUser.role === 'customer' ? '/book' : getDashboardPath(currentUser.role)} onClick={closeMenus}
                   style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
-                  Dashboard
+                  {currentUser.role === 'customer' ? 'Book appointment' : 'Dashboard'}
                 </Link>
                 <button type="button" onClick={handleLogout}
                   style={{ borderRadius: '1rem', border: '1px solid rgba(245,240,232,0.1)', padding: '0.75rem 1rem', color: 'rgba(245,240,232,0.8)', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
@@ -149,10 +152,10 @@ function Header() {
               <>
                 <Link to="/login" onClick={closeMenus}
                   style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
-                  Log in
+                  Staff log in
                 </Link>
-                <Link to="/register" onClick={closeMenus} className="button-primary" style={{ textAlign: 'center' }}>
-                  Create account
+                <Link to="/book" onClick={closeMenus} className="button-primary" style={{ textAlign: 'center' }}>
+                  Book now
                 </Link>
               </>
             )}

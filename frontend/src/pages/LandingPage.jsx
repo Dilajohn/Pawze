@@ -68,15 +68,15 @@ function LandingPage() {
             </h1>
 
             <p style={{ marginTop: '1.5rem', maxWidth: '30rem', fontSize: '1.05rem', lineHeight: 1.85, color: 'var(--muted)' }}>
-              A polished platform for appointment scheduling, pet records, and inventory — built for modern grooming salons.
+              A polished platform for dog appointment scheduling, pet records, and inventory — built for modern grooming salons.
             </p>
 
             <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <Link to="/register" className="button-primary">
-                Get started <ArrowRight size={15} />
+              <Link to="/book" className="button-primary">
+                Book a dog appointment <ArrowRight size={15} />
               </Link>
               <Link to="/login" className="button-secondary">
-                Try demo <PawPrint size={15} />
+                Staff login <PawPrint size={15} />
               </Link>
             </div>
 
@@ -164,9 +164,9 @@ function LandingPage() {
                   <p style={{ margin: '0.6rem 0 1.1rem', fontSize: '0.85rem', lineHeight: 1.7, color: 'var(--muted)' }}>{service.description}</p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--warm)' }}>${service.price}</span>
-                    <button type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms' }}>
+                    <Link to="/book" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms', textDecoration: 'none' }}>
                       Book service <ArrowRight size={14} />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </article>
@@ -257,17 +257,17 @@ function LandingPage() {
               <div className="section-kicker">Launch ready</div>
               <h2 className="section-title" style={{ maxWidth: '32rem' }}>See all three dashboards working together in one click.</h2>
               <p className="section-copy" style={{ maxWidth: '30rem' }}>
-                Demo accounts are one click away — inspect the admin, groomer, and customer experiences without typing a single credential.
-              </p>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <Link to="/login" className="button-primary">
-                Open demo login <ArrowRight size={15} />
-              </Link>
-              <Link to="/register" className="button-secondary">
-                Register a user <PawPrint size={15} />
-              </Link>
-            </div>
+              Customers stay on the public booking path, while admins and groomers work inside protected staff dashboards.
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <Link to="/login" className="button-primary">
+              Open staff portal <ArrowRight size={15} />
+            </Link>
+            <Link to="/book" className="button-secondary">
+              Book a dog visit <PawPrint size={15} />
+            </Link>
+          </div>
           </div>
         </div>
       </section>

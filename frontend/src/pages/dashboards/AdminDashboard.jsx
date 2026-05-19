@@ -32,6 +32,19 @@ const blankInventory = {
   supplier: '',
 }
 
+const blankStaff = {
+  name: '',
+  email: '',
+  phone: '',
+  location: '',
+  role: 'groomer',
+  password: '',
+}
+
+function makeInitialPassword(role) {
+  return `${role === 'admin' ? 'Admin' : 'Groom'}${Math.floor(1000 + Math.random() * 9000)}!`
+}
+
 function AdminDashboard() {
   const {
     appointments,
@@ -39,6 +52,8 @@ function AdminDashboard() {
     users,
     lowStockItems,
     currentUser,
+    createStaffAccount,
+    resetUserPassword,
     addAppointment,
     updateAppointment,
     deleteAppointment,
@@ -51,8 +66,10 @@ function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('appointments')
   const [appointmentForm, setAppointmentForm] = useState(blankAppointment)
   const [inventoryForm, setInventoryForm] = useState(blankInventory)
+  const [staffForm, setStaffForm] = useState(blankStaff)
   const [editingAppointmentId, setEditingAppointmentId] = useState(null)
   const [editingInventoryId, setEditingInventoryId] = useState(null)
+  const [staffMessage, setStaffMessage] = useState('')
   const [settings, setSettings] = useState({
     name: currentUser.name,
     phone: currentUser.phone,
@@ -91,6 +108,25 @@ function AdminDashboard() {
     setEditingInventoryId(null)
   }
 
+  function submitStaffAccount(event) {
+    event.preventDefault()
+    const result = createStaffAccount(staffForm)
+
+    if (!result.ok) {
+      setStaffMessage(result.message)
+      return
+    }
+
+    setStaffMessage(`Created ${result.user.role} account for ${result.user.name}. Initial password assigned.`)
+    setStaffForm(blankStaff)
+  }
+
+  function handlePasswordReset(user) {
+    const nextPassword = makeInitialPassword(user.role)
+    const result = resetUserPassword(user.id, nextPassword)
+    setStaffMessage(result.ok ? `Password reset for ${user.name}: ${nextPassword}` : result.message)
+  }
+
   function saveSettings(event) {
     event.preventDefault()
     updateProfile(settings)
@@ -113,8 +149,8 @@ function AdminDashboard() {
             <div className="metric-value">{lowStockItems.length}</div>
           </div>
           <div className="metric-card">
-            <div className="metric-label">Registered users</div>
-            <div className="metric-value">{users.length}</div>
+            <div className="metric-label">Staff accounts</div>
+            <div className="metric-value">{users.filter((user) => user.role !== 'customer').length}</div>
           </div>
         </div>
       </div>
@@ -293,9 +329,64 @@ function AdminDashboard() {
 
           {activeTab === 'users' && (
             <div className="dashboard-panel">
-              <div className="panel-heading">User directory</div>
+              <div className="panel-heading">Staff access management</div>
+              <div className="mb-8 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+                <form onSubmit={submitStaffAccount} className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                  <div className="mb-4 text-lg font-semibold text-white">Create staff account</div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="field md:col-span-2">
+                      <span>Full name</span>
+                      <input value={staffForm.name} onChange={(event) => setStaffForm({ ...staffForm, name: event.target.value })} required />
+                    </label>
+                    <label className="field">
+                      <span>Email</span>
+                      <input type="email" value={staffForm.email} onChange={(event) => setStaffForm({ ...staffForm, email: event.target.value })} required />
+                    </label>
+                    <label className="field">
+                      <span>Phone</span>
+                      <input value={staffForm.phone} onChange={(event) => setStaffForm({ ...staffForm, phone: event.target.value })} required />
+                    </label>
+                    <label className="field">
+                      <span>Location</span>
+                      <input value={staffForm.location} onChange={(event) => setStaffForm({ ...staffForm, location: event.target.value })} required />
+                    </label>
+                    <label className="field">
+                      <span>Role</span>
+                      <select value={staffForm.role} onChange={(event) => setStaffForm({ ...staffForm, role: event.target.value })}>
+                        <option value="groomer">Groomer</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </label>
+                    <label className="field md:col-span-2">
+                      <span>Initial password</span>
+                      <input type="text" value={staffForm.password} onChange={(event) => setStaffForm({ ...staffForm, password: event.target.value })} placeholder="Example: Groom123!" required />
+                    </label>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button type="submit" className="button-primary">
+                      Create staff user
+                    </button>
+                    <div className="text-sm leading-7 text-white/55">
+                      Customers should use the public booking page instead of receiving dashboard accounts.
+                    </div>
+                  </div>
+                  {staffMessage && <div className="mt-4 text-sm text-[var(--warm)]">{staffMessage}</div>}
+                </form>
+
+                <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                  <div className="mb-4 text-lg font-semibold text-white">Access policy</div>
+                  <div className="space-y-3 text-sm leading-7 text-white/60">
+                    <div>Customers are restricted to the landing page and the public dog appointment scheduler.</div>
+                    <div>Groomers and admins only enter protected dashboards after the admin creates their account.</div>
+                    <div>Resetting a password here acts like issuing a fresh initial password for the staff member.</div>
+                    <div>Staff should change their temporary password on first real backend implementation.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-5 text-sm uppercase tracking-[0.18em] text-white/40">Staff directory</div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {users.map((user) => (
+                {users.filter((user) => user.role !== 'customer').map((user) => (
                   <article key={user.id} className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                     <div className="flex items-center gap-4">
                       <img src={user.avatar} alt={user.name} className="h-14 w-14 rounded-2xl object-cover" />
@@ -308,6 +399,16 @@ function AdminDashboard() {
                       <div>{user.email}</div>
                       <div>{user.phone}</div>
                       <div>{user.location}</div>
+                    </div>
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <div className="text-xs uppercase tracking-[0.16em] text-white/35">
+                        {user.mustChangePassword ? 'Initial password active' : 'Active account'}
+                      </div>
+                      {user.id !== currentUser.id && (
+                        <button type="button" onClick={() => handlePasswordReset(user)} className="table-action">
+                          Reset password
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}
