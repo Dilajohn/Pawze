@@ -2,6 +2,7 @@ import { CalendarClock, History, PawPrint, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { services } from '../../data/mockData.js'
 import { useApp } from '../../context/AppContext.jsx'
+import { formatUGX } from '../../utils/currency.js'
 
 const wizardSteps = ['Service', 'Pet', 'Schedule', 'Review']
 const blankPet = {
@@ -146,7 +147,7 @@ function CustomerDashboard() {
                         className={`rounded-[1.75rem] border p-5 text-left transition ${booking.service === service.name ? 'border-(--color-peach) bg-(--color-peach)/10' : 'border-white/10 bg-white/5'}`}
                       >
                         <div className="text-xl font-semibold text-white">{service.name}</div>
-                        <div className="mt-2 text-sm text-white/55">{service.duration} - ${service.price}</div>
+                        <div className="mt-2 text-sm text-white/55">{service.duration} - {formatUGX(service.price)}</div>
                         <p className="mt-3 text-sm leading-6 text-white/60">{service.description}</p>
                       </button>
                     ))}

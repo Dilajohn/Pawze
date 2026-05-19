@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle2, PawPrint, ShieldCheck, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { dashboardHighlights, howItWorks, landingStats, services, testimonials } from '../data/mockData.js'
+import { formatUGX } from '../utils/currency.js'
 
 const serviceImages = [
   '/images/animal-shelter.jpg',
@@ -37,7 +38,7 @@ function RibbonText({ children, color = 'rgba(122,170,106,0.18)' }) {
 function StarRow() {
   return (
     <span style={{ display: 'inline-flex', gap: '2px' }}>
-      {[1,2,3,4,5].map(i => <Star key={i} size={12} fill="var(--warm)" color="var(--warm)" />)}
+      {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={12} fill="var(--warm)" color="var(--warm)" />)}
     </span>
   )
 }
@@ -45,15 +46,11 @@ function StarRow() {
 function LandingPage() {
   return (
     <div className="overflow-hidden">
-
-      {/* ── HERO ── */}
       <section className="hero-section">
         <div className="hero-glow-a" />
         <div className="hero-glow-b" />
 
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem', display: 'grid', alignItems: 'center', gap: '3rem', paddingTop: '8rem', paddingBottom: '5rem', gridTemplateColumns: '1fr' }} className="lg:grid-cols-[1.1fr_0.9fr]">
-
-          {/* left */}
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', background: 'rgba(255,255,255,0.05)', padding: '0.4rem 1rem 0.4rem 0.6rem', marginBottom: '1.5rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,var(--sage),var(--warm))', borderRadius: '999px', padding: '0.3rem' }}>
@@ -68,19 +65,18 @@ function LandingPage() {
             </h1>
 
             <p style={{ marginTop: '1.5rem', maxWidth: '30rem', fontSize: '1.05rem', lineHeight: 1.85, color: 'var(--muted)' }}>
-              A polished platform for dog appointment scheduling, pet records, and inventory — built for modern grooming salons.
+              A polished platform for appointment scheduling, pet records, and inventory — built for modern grooming salons.
             </p>
 
             <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <Link to="/book" className="button-primary">
-                Book a dog appointment <ArrowRight size={15} />
+              <Link to="/register" className="button-primary">
+                Get started <ArrowRight size={15} />
               </Link>
               <Link to="/login" className="button-secondary">
-                Staff login <PawPrint size={15} />
+                Try demo <PawPrint size={15} />
               </Link>
             </div>
 
-            {/* mini highlights */}
             <div style={{ marginTop: '2.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
               {dashboardHighlights.map((item) => (
                 <div key={item.title} className="glass-panel" style={{ padding: '1.1rem 1.25rem' }}>
@@ -91,18 +87,15 @@ function LandingPage() {
             </div>
           </div>
 
-          {/* right — hero image + floating cards */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <img src="/images/cutest-puppy.jpg" alt="Happy groomed puppy" className="hero-img" />
 
-            {/* top-left float */}
             <div className="float-card" style={{ top: '2rem', left: '-1.5rem' }}>
               <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.22em', color: 'rgba(245,240,232,0.4)' }}>Today's flow</div>
               <div style={{ marginTop: '0.3rem', fontSize: '2rem', fontFamily: "'Playfair Display',serif", color: '#fff', lineHeight: 1 }}>18</div>
               <div style={{ fontSize: '0.78rem', color: 'rgba(245,240,232,0.55)', marginTop: '0.2rem' }}>visits · 4 groomers</div>
             </div>
 
-            {/* bottom-right float */}
             <div className="float-card float-card-b" style={{ bottom: '-1.5rem', right: '-1rem', maxWidth: '14rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.22em', color: 'rgba(245,240,232,0.4)' }}>Pet profile</div>
@@ -115,7 +108,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* ── RIBBON ── */}
       <RibbonText color="rgba(122,170,106,0.1)">
         <span>Appointment scheduling</span>
         <span>·</span>
@@ -131,7 +123,6 @@ function LandingPage() {
         <span>·</span>
       </RibbonText>
 
-      {/* ── STATS ── */}
       <section style={{ background: 'var(--panel)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 0 }}>
           {landingStats.map((item, i) => (
@@ -143,7 +134,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* ── SERVICES ── */}
       <section id="services" style={{ padding: '6rem 0' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
           <div style={{ maxWidth: '36rem' }}>
@@ -163,10 +153,10 @@ function LandingPage() {
                   </div>
                   <p style={{ margin: '0.6rem 0 1.1rem', fontSize: '0.85rem', lineHeight: 1.7, color: 'var(--muted)' }}>{service.description}</p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--warm)' }}>${service.price}</span>
-                    <Link to="/book" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms', textDecoration: 'none' }}>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--warm)' }}>{formatUGX(service.price)}</span>
+                    <button type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms' }}>
                       Book service <ArrowRight size={14} />
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </article>
@@ -175,11 +165,9 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* ── WAVY divider + HOW IT WORKS ── */}
       <WavyDivider color="rgba(19,20,26,1)" />
       <section id="how-it-works" style={{ background: 'var(--panel)', padding: '5rem 0' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem', display: 'grid', gap: '3rem', gridTemplateColumns: '1fr' }} className="lg:grid-cols-[0.95fr_1.05fr]">
-          {/* editorial image block */}
           <div style={{ position: 'relative', borderRadius: '2rem', overflow: 'hidden', border: '1px solid var(--border)', minHeight: '400px' }}>
             <img src="/images/german-shepherd.jpg" alt="Grooming session" style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '400px' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(10,11,15,0.9))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '2rem' }}>
@@ -188,7 +176,6 @@ function LandingPage() {
             </div>
           </div>
 
-          {/* steps */}
           <div>
             <div className="section-kicker">How it works</div>
             <h2 className="section-title" style={{ marginBottom: '1.75rem' }}>From booking to bow — four smooth steps.</h2>
@@ -208,7 +195,6 @@ function LandingPage() {
       </section>
       <WavyDivider color="rgba(19,20,26,1)" flip />
 
-      {/* ── TESTIMONIALS ── */}
       <section id="testimonials" style={{ padding: '6rem 0' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
@@ -249,7 +235,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
       <section style={{ padding: '0 1.5rem 6rem' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
           <div className="cta-panel">
@@ -257,21 +242,20 @@ function LandingPage() {
               <div className="section-kicker">Launch ready</div>
               <h2 className="section-title" style={{ maxWidth: '32rem' }}>See all three dashboards working together in one click.</h2>
               <p className="section-copy" style={{ maxWidth: '30rem' }}>
-              Customers stay on the public booking path, while admins and groomers work inside protected staff dashboards.
-            </p>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <Link to="/login" className="button-primary">
-              Open staff portal <ArrowRight size={15} />
-            </Link>
-            <Link to="/book" className="button-secondary">
-              Book a dog visit <PawPrint size={15} />
-            </Link>
-          </div>
+                Demo accounts are one click away — inspect the admin, groomer, and customer experiences without typing a single credential.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <Link to="/login" className="button-primary">
+                Open demo login <ArrowRight size={15} />
+              </Link>
+              <Link to="/register" className="button-secondary">
+                Register a user <PawPrint size={15} />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
-
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { services } from '../../data/mockData.js'
 import { useApp } from '../../context/AppContext.jsx'
+import { formatUGX } from '../../utils/currency.js'
 
 const dogServices = services.filter((service) => service.id !== 'spa-reset').concat(
   services.find((service) => service.id === 'spa-reset') ? [services.find((service) => service.id === 'spa-reset')] : [],
@@ -49,7 +50,7 @@ function PublicBookingPage() {
       date: form.date,
       time: form.time,
       groomerId: 'user-groomer',
-      groomerName: 'Miko Reyes',
+      groomerName: 'Assigned by staff',
       status: 'pending',
       notes: `Dog booking only. Breed: ${form.breed}. Age: ${form.age || 'n/a'}. Weight: ${form.weight || 'n/a'}. Contact: ${form.phone}. ${form.notes}`.trim(),
     })
@@ -189,7 +190,7 @@ function PublicBookingPage() {
                       }`}
                     >
                       <div className="text-lg font-semibold text-white">{service.name}</div>
-                      <div className="mt-2 text-sm text-[var(--muted)]">{service.duration} - ${service.price}</div>
+                      <div className="mt-2 text-sm text-[var(--muted)]">{service.duration} - {formatUGX(service.price)}</div>
                       <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{service.description}</p>
                     </button>
                   ))}
