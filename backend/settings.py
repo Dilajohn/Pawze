@@ -49,7 +49,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'pawze_backend.urls'
+ROOT_URLCONF = 'urls'
 
 TEMPLATES = [
     {
@@ -66,7 +66,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'pawze_backend.wsgi.application'
+WSGI_APPLICATION = 'wsgi.application'
 
 # ---------------------------------------------------------------------------
 # Database — PostgreSQL with SQLite fallback
