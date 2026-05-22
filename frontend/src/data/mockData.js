@@ -1,3 +1,11 @@
+/**
+ * Static display data for the landing page.
+ * These are not application state — they are marketing copy and never sent to the API.
+ *
+ * NOTE: The old `initialData` block (users / pets / appointments / inventory) has been
+ * removed. All live data is now fetched from the Django backend via api.js.
+ */
+
 export const services = [
   {
     id: 'bath-brush',
@@ -94,126 +102,3 @@ export const dashboardHighlights = [
     body: 'Keep preferences, coat notes, and prior visits handy for tailored grooming experiences.',
   },
 ]
-
-export const initialData = {
-  users: [
-    {
-      id: 'user-admin',
-      name: 'Ariana Cruz',
-      email: 'admin@pawze.app',
-      password: 'Admin123!',
-      role: 'admin',
-      phone: '+63 917 100 2000',
-      location: 'Pasig City',
-      avatar: '/images/goran-radeski.jpg',
-    },
-    {
-      id: 'user-groomer',
-      name: 'Miko Reyes',
-      email: 'groomer@pawze.app',
-      password: 'Groom123!',
-      role: 'groomer',
-      phone: '+63 917 300 4000',
-      location: 'Mandaluyong',
-      avatar: '/images/image-7.jpg',
-    },
-    {
-      id: 'user-customer',
-      name: 'Jamie Torres',
-      email: 'customer@pawze.app',
-      password: 'Customer123!',
-      role: 'customer',
-      phone: '+63 917 500 6000',
-      location: 'Quezon City',
-      avatar: '/images/cutest-puppy.jpg',
-    },
-  ],
-  pets: [
-    {
-      id: 'pet-1',
-      ownerId: 'user-customer',
-      name: 'Sunny',
-      breed: 'Golden Retriever',
-      age: '2 years',
-      weight: '24 kg',
-      notes: 'Loves warm water and peanut-butter treats.',
-    },
-    {
-      id: 'pet-2',
-      ownerId: 'user-customer',
-      name: 'Rex',
-      breed: 'German Shepherd',
-      age: '4 years',
-      weight: '31 kg',
-      notes: 'Sensitive around ears, prefers early appointments.',
-    },
-  ],
-  appointments: [
-    {
-      id: 'appt-1',
-      customerId: 'user-customer',
-      customerName: 'Jamie Torres',
-      petId: 'pet-1',
-      petName: 'Sunny',
-      service: 'Spa Reset',
-      date: '2026-05-15',
-      time: '09:30',
-      groomerId: 'user-groomer',
-      groomerName: 'Miko Reyes',
-      status: 'confirmed',
-      notes: 'Use hypoallergenic shampoo.',
-    },
-    {
-      id: 'appt-2',
-      customerId: 'user-customer',
-      customerName: 'Jamie Torres',
-      petId: 'pet-2',
-      petName: 'Rex',
-      service: 'Shed Control',
-      date: '2026-05-18',
-      time: '14:00',
-      groomerId: 'user-groomer',
-      groomerName: 'Miko Reyes',
-      status: 'pending',
-      notes: 'Double coat deshedding and nail trim.',
-    },
-  ],
-  inventory: [
-    {
-      id: 'inv-1',
-      name: 'Oatmeal Shampoo',
-      category: 'Consumable',
-      quantity: 5,
-      unit: 'bottles',
-      threshold: 6,
-      supplier: 'FurFresh Supply',
-    },
-    {
-      id: 'inv-2',
-      name: 'Finishing Spray',
-      category: 'Consumable',
-      quantity: 12,
-      unit: 'bottles',
-      threshold: 5,
-      supplier: 'Pet Luxe Co.',
-    },
-    {
-      id: 'inv-3',
-      name: 'Nail Grinder Bits',
-      category: 'Tools',
-      quantity: 3,
-      unit: 'sets',
-      threshold: 4,
-      supplier: 'Clip Craft',
-    },
-    {
-      id: 'inv-4',
-      name: 'Bow Ties',
-      category: 'Accessories',
-      quantity: 18,
-      unit: 'packs',
-      threshold: 7,
-      supplier: 'Tail & Trim',
-    },
-  ],
-}

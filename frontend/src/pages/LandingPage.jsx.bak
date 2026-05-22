@@ -69,11 +69,11 @@ function LandingPage() {
             </p>
 
             <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <Link to="/book" className="button-primary">
-                Book an appointment <ArrowRight size={15} />
+              <Link to="/register" className="button-primary">
+                Get started <ArrowRight size={15} />
               </Link>
-              <Link to="/register" className="button-secondary">
-                Create account <PawPrint size={15} />
+              <Link to="/login" className="button-secondary">
+                Try demo <PawPrint size={15} />
               </Link>
             </div>
 
@@ -246,11 +246,11 @@ function LandingPage() {
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <Link to="/book" className="button-primary">
-                Book a grooming appointment <ArrowRight size={15} />
+              <Link to="/login" className="button-primary">
+                Open demo login <ArrowRight size={15} />
               </Link>
               <Link to="/register" className="button-secondary">
-                Create your account <PawPrint size={15} />
+                Register a user <PawPrint size={15} />
               </Link>
             </div>
           </div>

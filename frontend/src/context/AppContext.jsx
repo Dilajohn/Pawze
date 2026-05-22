@@ -1,264 +1,280 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState } from 'react'
-import { initialData } from '../data/mockData.js'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import api, { storeTokens, clearTokens, getAccessToken } from '../utils/api.js'
 
 const AppContext = createContext(null)
 
-const DATA_KEY = 'pawze-data'
-const AUTH_KEY = 'pawze-auth'
-
-function readStorage(key, fallback) {
-  const saved = localStorage.getItem(key)
-
-  if (!saved) {
-    return fallback
-  }
-
-  try {
-    return JSON.parse(saved)
-  } catch {
-    return fallback
-  }
-}
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
+
 export function AppProvider({ children }) {
-  const [data, setData] = useState(() => readStorage(DATA_KEY, initialData))
-  const [currentUser, setCurrentUser] = useState(() => readStorage(AUTH_KEY, null))
+  const [currentUser, setCurrentUser] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('pawze-user')) } catch { return null }
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  useEffect(() => {
-    localStorage.setItem(DATA_KEY, JSON.stringify(data))
-  }, [data])
-
+  // Persist user to sessionStorage
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser))
-      return
+      sessionStorage.setItem('pawze-user', JSON.stringify(currentUser))
+    } else {
+      sessionStorage.removeItem('pawze-user')
     }
-
-    localStorage.removeItem(AUTH_KEY)
   }, [currentUser])
+
+  // Listen for forced logout from the API layer
+  useEffect(() => {
+    const handler = () => { setCurrentUser(null) }
+    window.addEventListener('pawze:logout', handler)
+    return () => window.removeEventListener('pawze:logout', handler)
+  }, [])
 
   function getDashboardPath(role) {
     if (role === 'admin') return '/admin'
     if (role === 'groomer') return '/groomer'
-    return '/book'
+    return '/customer'
   }
 
-  function syncCurrentUser(updatedUsers, nextId = currentUser?.id) {
-    if (!nextId) return
+  // ---------------------------------------------------------------------------
+  // Auth
+  // ---------------------------------------------------------------------------
 
-    const updated = updatedUsers.find((user) => user.id === nextId)
+  async function login(email, password) {
+    try {
+      const data = await api.post('/auth/login/', { username: email, password })
+      storeTokens({ access: data.access, refresh: data.refresh })
+      setCurrentUser(data.user ?? null)
 
-    if (updated) {
-      setCurrentUser(updated)
+      // If the backend login returns tokens but not user data inline, fetch profile
+      if (!data.user) {
+        const profile = await api.get('/users/me/')
+        setCurrentUser(profile)
+        return { ok: true, user: profile }
+      }
+
+      return { ok: true, user: data.user }
+    } catch (err) {
+      return { ok: false, message: err.message }
     }
   }
 
-  function login(email, password) {
-    const user = data.users.find(
-      (entry) => entry.email.toLowerCase() === email.toLowerCase() && entry.password === password,
-    )
-
-    if (!user) {
-      return { ok: false, message: 'Incorrect email or password.' }
-    }
-
-    if (user.role === 'customer') {
-      return { ok: false, message: 'Customers use the public dog booking page instead of the staff portal.' }
-    }
-
-    setCurrentUser(user)
-    return { ok: true, user }
-  }
-
-  function loginWithDemo(role) {
-    if (role === 'customer') {
-      return { ok: false, message: 'Customers use the booking page. Staff demo access is for admin and groomer only.' }
-    }
-
-    const user = data.users.find((entry) => entry.role === role)
-
-    if (!user) {
-      return { ok: false, message: 'Demo user is unavailable.' }
-    }
-
-    setCurrentUser(user)
-    return { ok: true, user }
-  }
-
-  function register() {
-    return {
-      ok: false,
-      message: 'Self-service registration is disabled. Customers can book from the public booking page, and staff accounts are created by the admin.',
+  async function register(payload) {
+    try {
+      const data = await api.post('/auth/register/', payload)
+      storeTokens({ access: data.access, refresh: data.refresh })
+      setCurrentUser(data.user)
+      return { ok: true, user: data.user }
+    } catch (err) {
+      return { ok: false, message: err.message }
     }
   }
 
   function logout() {
+    clearTokens()
     setCurrentUser(null)
   }
 
-  function addAppointment(appointment) {
-    setData((prev) => ({
-      ...prev,
-      appointments: [{ id: uid('appt'), ...appointment }, ...prev.appointments],
-    }))
-  }
-
-  function createStaffAccount(payload) {
-    if (currentUser?.role !== 'admin') {
-      return { ok: false, message: 'Only admins can create staff accounts.' }
+  async function changePassword(oldPassword, newPassword, newPasswordConfirm) {
+    try {
+      await api.post('/auth/change-password/', {
+        old_password: oldPassword,
+        new_password: newPassword,
+        new_password_confirm: newPasswordConfirm,
+      })
+      // Refresh current user to clear must_change_password
+      const updated = { ...currentUser, must_change_password: false }
+      setCurrentUser(updated)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
     }
+  }
 
-    const exists = data.users.some((user) => user.email.toLowerCase() === payload.email.toLowerCase())
-
-    if (exists) {
-      return { ok: false, message: 'An account with that email already exists.' }
+  // Demo login — still hits the backend with well-known credentials
+  async function loginWithDemo(role) {
+    const credentials = {
+      admin:   { username: 'admin_demo',   password: 'DemoAdmin1!' },
+      groomer: { username: 'groomer_demo', password: 'DemoGroom1!' },
     }
-
-    if (!['admin', 'groomer'].includes(payload.role)) {
-      return { ok: false, message: 'Only staff roles can be created here.' }
+    if (!credentials[role]) {
+      return { ok: false, message: 'Demo access is for admin and groomer only.' }
     }
+    return login(credentials[role].username, credentials[role].password)
+  }
 
-    const user = {
-      id: uid('user'),
-      avatar: payload.role === 'admin' ? '/images/animal-shelter.jpg' : '/images/image-7.jpg',
-      location: payload.location || 'Metro Manila',
-      mustChangePassword: true,
-      ...payload,
+  // ---------------------------------------------------------------------------
+  // Appointments
+  // ---------------------------------------------------------------------------
+
+  async function addAppointment(appointment) {
+    try {
+      const created = await api.post('/appointments/', appointment)
+      return { ok: true, data: created }
+    } catch (err) {
+      return { ok: false, message: err.message }
     }
-
-    setData((prev) => ({
-      ...prev,
-      users: [...prev.users, user],
-    }))
-
-    return { ok: true, user }
   }
 
-  function resetUserPassword(userId, nextPassword) {
-    if (currentUser?.role !== 'admin') {
-      return { ok: false, message: 'Only admins can reset staff passwords.' }
+  async function updateAppointment(id, updates) {
+    try {
+      const updated = await api.patch(`/appointments/${id}/`, updates)
+      return { ok: true, data: updated }
+    } catch (err) {
+      return { ok: false, message: err.message }
     }
+  }
 
-    const target = data.users.find((user) => user.id === userId)
-
-    if (!target) {
-      return { ok: false, message: 'User not found.' }
+  async function deleteAppointment(id) {
+    try {
+      await api.delete(`/appointments/${id}/`)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
     }
-
-    const nextUsers = data.users.map((user) =>
-      user.id === userId ? { ...user, password: nextPassword, mustChangePassword: true } : user,
-    )
-
-    setData({ ...data, users: nextUsers })
-    syncCurrentUser(nextUsers)
-
-    return { ok: true, password: nextPassword }
   }
 
-  function updateAppointment(id, updates) {
-    setData((prev) => ({
-      ...prev,
-      appointments: prev.appointments.map((item) => (item.id === id ? { ...item, ...updates } : item)),
-    }))
+  async function submitFeedback(appointmentId, rating, comments) {
+    try {
+      const data = await api.post(`/appointments/${appointmentId}/feedback/`, { rating, comments })
+      return { ok: true, data }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function deleteAppointment(id) {
-    setData((prev) => ({
-      ...prev,
-      appointments: prev.appointments.filter((item) => item.id !== id),
-    }))
+  // ---------------------------------------------------------------------------
+  // Inventory
+  // ---------------------------------------------------------------------------
+
+  async function addInventoryItem(item) {
+    try {
+      const created = await api.post('/inventory/', item)
+      return { ok: true, data: created }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function addInventoryItem(item) {
-    setData((prev) => ({
-      ...prev,
-      inventory: [{ id: uid('inv'), ...item }, ...prev.inventory],
-    }))
+  async function updateInventoryItem(id, updates) {
+    try {
+      const updated = await api.patch(`/inventory/${id}/`, updates)
+      return { ok: true, data: updated }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function updateInventoryItem(id, updates) {
-    setData((prev) => ({
-      ...prev,
-      inventory: prev.inventory.map((item) => (item.id === id ? { ...item, ...updates } : item)),
-    }))
+  async function deleteInventoryItem(id) {
+    try {
+      await api.delete(`/inventory/${id}/`)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function deleteInventoryItem(id) {
-    setData((prev) => ({
-      ...prev,
-      inventory: prev.inventory.filter((item) => item.id !== id),
-    }))
+  // ---------------------------------------------------------------------------
+  // Pets
+  // ---------------------------------------------------------------------------
+
+  async function addPet(pet) {
+    try {
+      const created = await api.post('/pets/', pet)
+      return { ok: true, data: created }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function adjustInventoryQuantity(id, delta) {
-    setData((prev) => ({
-      ...prev,
-      inventory: prev.inventory.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item,
-      ),
-    }))
+  async function updatePet(id, updates) {
+    try {
+      const updated = await api.patch(`/pets/${id}/`, updates)
+      return { ok: true, data: updated }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function addPet(pet) {
-    const createdPet = { id: uid('pet'), ownerId: currentUser.id, ...pet }
-    setData((prev) => ({
-      ...prev,
-      pets: [createdPet, ...prev.pets],
-    }))
-    return createdPet
+  async function deletePet(id) {
+    try {
+      await api.delete(`/pets/${id}/`)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function updatePet(id, updates) {
-    setData((prev) => ({
-      ...prev,
-      pets: prev.pets.map((pet) => (pet.id === id ? { ...pet, ...updates } : pet)),
-    }))
+  // ---------------------------------------------------------------------------
+  // Staff management (admin)
+  // ---------------------------------------------------------------------------
+
+  async function createStaffAccount(payload) {
+    try {
+      const data = await api.post('/users/', payload)
+      return { ok: true, user: data }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function deletePet(id) {
-    setData((prev) => ({
-      ...prev,
-      pets: prev.pets.filter((pet) => pet.id !== id),
-      appointments: prev.appointments.filter((appt) => appt.petId !== id),
-    }))
+  async function resetUserPassword(userId, newPassword) {
+    try {
+      await api.post(`/users/${userId}/reset_password/`, { new_password: newPassword })
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
 
-  function updateProfile(updates) {
-    const nextUsers = data.users.map((user) => (user.id === currentUser.id ? { ...user, ...updates } : user))
-    setData({ ...data, users: nextUsers })
-    syncCurrentUser(nextUsers, currentUser.id)
+  async function updateProfile(updates) {
+    try {
+      const updated = await api.patch(`/users/${currentUser.id}/`, updates)
+      setCurrentUser(updated)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
   }
-
-  const lowStockItems = data.inventory.filter((item) => item.quantity <= item.threshold)
 
   return (
     <AppContext.Provider
       value={{
-        ...data,
         currentUser,
-        lowStockItems,
+        loading,
+        error,
         getDashboardPath,
+        // auth
         login,
         loginWithDemo,
         register,
         logout,
-        createStaffAccount,
-        resetUserPassword,
+        changePassword,
+        // appointments
         addAppointment,
         updateAppointment,
         deleteAppointment,
+        submitFeedback,
+        // inventory
         addInventoryItem,
         updateInventoryItem,
         deleteInventoryItem,
-        adjustInventoryQuantity,
+        // pets
         addPet,
         updatePet,
         deletePet,
+        // staff / profile
+        createStaffAccount,
+        resetUserPassword,
         updateProfile,
       }}
     >
@@ -269,10 +285,6 @@ export function AppProvider({ children }) {
 
 export function useApp() {
   const context = useContext(AppContext)
-
-  if (!context) {
-    throw new Error('useApp must be used within AppProvider')
-  }
-
+  if (!context) throw new Error('useApp must be used within AppProvider')
   return context
 }

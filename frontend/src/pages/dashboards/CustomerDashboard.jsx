@@ -1,179 +1,248 @@
-import { CalendarClock, History, PawPrint, Settings } from 'lucide-react'
-import { useState } from 'react'
-import { services } from '../../data/mockData.js'
+import { CalendarClock, History, PawPrint, Settings, Bell, Star } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../../context/AppContext.jsx'
+import api from '../../utils/api.js'
 import { formatUGX } from '../../utils/currency.js'
 
 const wizardSteps = ['Service', 'Pet', 'Schedule', 'Review']
-const blankPet = {
-  name: '',
-  breed: '',
-  age: '',
-  weight: '',
-  notes: '',
+
+const blankPet = { name: '', breed: '', age: '', weight: '', notes: '' }
+
+function StarRating({ value, onChange }) {
+  return (
+    <div className="flex gap-1">
+      {[1,2,3,4,5].map((i) => (
+        <button key={i} type="button" onClick={() => onChange(i)}
+          style={{ color: i <= value ? 'var(--warm)' : 'rgba(255,255,255,0.25)', fontSize: '22px', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>
+          ★
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function StatusBadge({ status }) {
+  const colors = {
+    pending: 'bg-amber-300/15 text-amber-200',
+    confirmed: 'bg-blue-400/15 text-blue-300',
+    'in-progress': 'bg-purple-400/15 text-purple-200',
+    completed: 'bg-green-400/15 text-green-300',
+    cancelled: 'bg-red-400/15 text-red-300',
+  }
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 text-xs uppercase tracking-wider ${colors[status] ?? 'bg-white/10 text-white/60'}`}>
+      {status}
+    </span>
+  )
 }
 
 function CustomerDashboard() {
-  const { currentUser, pets, appointments, addPet, updatePet, deletePet, addAppointment, updateProfile } = useApp()
-  const myPets = pets.filter((pet) => pet.ownerId === currentUser.id)
-  const myAppointments = appointments.filter((item) => item.customerId === currentUser.id || item.customerName === currentUser.name)
-
+  const { currentUser, addPet, updatePet, deletePet, addAppointment, updateProfile, submitFeedback } = useApp()
   const [activeTab, setActiveTab] = useState('booking')
   const [step, setStep] = useState(0)
   const [petForm, setPetForm] = useState(blankPet)
   const [editingPetId, setEditingPetId] = useState(null)
   const [settings, setSettings] = useState({
-    name: currentUser.name,
-    phone: currentUser.phone,
-    location: currentUser.location,
+    first_name: currentUser?.first_name ?? '',
+    last_name: currentUser?.last_name ?? '',
+    phone: currentUser?.phone ?? '',
+    location: currentUser?.location ?? '',
   })
-  const [booking, setBooking] = useState({
-    service: services[0].name,
-    petId: myPets[0]?.id || '',
-    date: '',
-    time: '',
-    notes: '',
-  })
+  const [feedbackState, setFeedbackState] = useState({})  // { [appointmentId]: { rating, comments } }
+  const [feedbackSent, setFeedbackSent] = useState({})    // { [appointmentId]: true }
 
-  const selectedPet = myPets.find((pet) => pet.id === booking.petId)
+  // Remote data
+  const [pets, setPets] = useState([])
+  const [appointments, setAppointments] = useState([])
+  const [services, setServices] = useState([])
+  const [notifications, setNotifications] = useState([])
 
-  function submitPet(event) {
-    event.preventDefault()
+  const [booking, setBooking] = useState({ service_id: '', pet_id: '', date: '', time: '', notes: '' })
+  const [bookingSubmitted, setBookingSubmitted] = useState(false)
+  const [bookingError, setBookingError] = useState('')
 
-    if (editingPetId) {
-      updatePet(editingPetId, petForm)
-    } else {
-      const createdPet = addPet(petForm)
-      setBooking((prev) => ({ ...prev, petId: prev.petId || createdPet.id }))
+  const fetchAll = useCallback(async () => {
+    const [petRes, apptRes, svcRes, notifRes] = await Promise.allSettled([
+      api.get('/pets/'),
+      api.get('/appointments/'),
+      api.get('/services/'),
+      api.get('/notifications/'),
+    ])
+    if (petRes.status === 'fulfilled') {
+      const p = petRes.value?.results ?? petRes.value ?? []
+      setPets(p)
+      if (!booking.pet_id && p.length > 0) setBooking((b) => ({ ...b, pet_id: p[0].id }))
     }
-
-    setPetForm(blankPet)
-    setEditingPetId(null)
-  }
-
-  function submitBooking(event) {
-    event.preventDefault()
-
-    if (!selectedPet) {
-      return
+    if (apptRes.status === 'fulfilled') setAppointments(apptRes.value?.results ?? apptRes.value ?? [])
+    if (svcRes.status === 'fulfilled') {
+      const s = svcRes.value?.results ?? svcRes.value ?? []
+      setServices(s)
+      if (!booking.service_id && s.length > 0) setBooking((b) => ({ ...b, service_id: s[0].id }))
     }
+    if (notifRes.status === 'fulfilled') setNotifications(notifRes.value?.results ?? notifRes.value ?? [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    addAppointment({
-      customerId: currentUser.id,
-      customerName: currentUser.name,
-      petId: selectedPet.id,
-      petName: selectedPet.name,
-      service: booking.service,
+  useEffect(() => { fetchAll() }, [fetchAll])
+
+  const selectedService = services.find((s) => String(s.id) === String(booking.service_id))
+  const selectedPet = pets.find((p) => String(p.id) === String(booking.pet_id))
+  const unreadCount = notifications.filter((n) => !n.is_read).length
+
+  // Wizard validation
+  const canContinue =
+    (step === 0 && !!booking.service_id) ||
+    (step === 1 && !!booking.pet_id) ||
+    (step === 2 && booking.date && booking.time)
+
+  async function submitBooking(event) {
+    event.preventDefault()
+    setBookingError('')
+    const result = await addAppointment({
+      pet: booking.pet_id || null,
+      pet_name: selectedPet?.name ?? currentUser?.first_name ?? 'Guest pet',
+      service: booking.service_id,
       date: booking.date,
       time: booking.time,
-      groomerId: 'user-groomer',
-      groomerName: 'Miko Reyes',
-      status: 'pending',
       notes: booking.notes,
+      customer_name: `${currentUser?.first_name ?? ''} ${currentUser?.last_name ?? ''}`.trim(),
     })
-
-    setBooking({
-      service: services[0].name,
-      petId: myPets[0]?.id || '',
-      date: '',
-      time: '',
-      notes: '',
-    })
+    if (!result.ok) { setBookingError(result.message); return }
+    setBookingSubmitted(true)
     setStep(0)
-    setActiveTab('history')
+    setBooking({ service_id: services[0]?.id ?? '', pet_id: pets[0]?.id ?? '', date: '', time: '', notes: '' })
+    fetchAll()
   }
 
-  function saveSettings(event) {
+  async function submitPet(event) {
     event.preventDefault()
-    updateProfile(settings)
+    const result = editingPetId ? await updatePet(editingPetId, petForm) : await addPet(petForm)
+    if (!result.ok) return
+    setPetForm(blankPet)
+    setEditingPetId(null)
+    fetchAll()
   }
 
-  const canContinue =
-    (step === 0 && Boolean(booking.service)) ||
-    (step === 1 && Boolean(booking.petId)) ||
-    (step === 2 && Boolean(booking.date && booking.time))
+  async function handleDeletePet(id) {
+    await deletePet(id)
+    fetchAll()
+  }
+
+  async function handleFeedbackSubmit(appointmentId) {
+    const fb = feedbackState[appointmentId] ?? { rating: 5, comments: '' }
+    const result = await submitFeedback(appointmentId, fb.rating, fb.comments)
+    if (result.ok) {
+      setFeedbackSent((prev) => ({ ...prev, [appointmentId]: true }))
+      fetchAll()
+    }
+  }
+
+  async function markNotifRead(id) {
+    await api.patch(`/notifications/${id}/mark_read/`)
+    fetchAll()
+  }
+
+  async function saveSettings(event) {
+    event.preventDefault()
+    await updateProfile(settings)
+  }
 
   return (
     <section className="dashboard-shell">
       <div className="dashboard-top">
         <div>
           <div className="section-kicker">Customer dashboard</div>
-          <h1 className="font-display text-4xl text-white">Book visits, manage pets, and revisit every grooming moment.</h1>
+          <h1 className="font-display text-4xl text-white">
+            Welcome, {currentUser?.first_name || currentUser?.username || 'there'}.
+          </h1>
         </div>
-        <img src="/images/cutest-puppy.jpg" alt="Customer dashboard art" className="h-32 w-full rounded-4xl object-cover md:w-72" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="metric-card">
+            <div className="metric-label">Your pets</div>
+            <div className="metric-value">{pets.length}</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-label">Appointments</div>
+            <div className="metric-value">{appointments.length}</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-label">Notifications</div>
+            <div className="metric-value">{unreadCount}</div>
+          </div>
+        </div>
       </div>
 
       <div className="dashboard-grid">
         <aside className="dashboard-nav">
-          <button type="button" onClick={() => setActiveTab('booking')} className={`dashboard-tab ${activeTab === 'booking' ? 'dashboard-tab-active' : ''}`}>
-            <CalendarClock size={17} />
-            Book appointment
-          </button>
-          <button type="button" onClick={() => setActiveTab('pets')} className={`dashboard-tab ${activeTab === 'pets' ? 'dashboard-tab-active' : ''}`}>
-            <PawPrint size={17} />
-            My pets
-          </button>
-          <button type="button" onClick={() => setActiveTab('history')} className={`dashboard-tab ${activeTab === 'history' ? 'dashboard-tab-active' : ''}`}>
-            <History size={17} />
-            History
-          </button>
-          <button type="button" onClick={() => setActiveTab('settings')} className={`dashboard-tab ${activeTab === 'settings' ? 'dashboard-tab-active' : ''}`}>
-            <Settings size={17} />
-            Settings
-          </button>
+          {[
+            { key: 'booking', label: 'Book appointment', icon: CalendarClock },
+            { key: 'pets', label: 'My pets', icon: PawPrint },
+            { key: 'history', label: 'History', icon: History },
+            { key: 'notifications', label: 'Notifications', icon: Bell, badge: unreadCount },
+            { key: 'settings', label: 'Settings', icon: Settings },
+          ].map(({ key, label, icon: Icon, badge }) => (
+            <button key={key} type="button" onClick={() => setActiveTab(key)}
+              className={`dashboard-tab ${activeTab === key ? 'dashboard-tab-active' : ''}`}>
+              <Icon size={17} />
+              {label}
+              {badge > 0 && <span className="ml-auto rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-black">{badge}</span>}
+            </button>
+          ))}
         </aside>
 
         <div className="space-y-6">
+          {/* Booking wizard */}
           {activeTab === 'booking' && (
             <div className="dashboard-panel">
-              <div className="panel-heading">4-step booking wizard</div>
-              <div className="mb-8 grid gap-3 md:grid-cols-4">
-                {wizardSteps.map((label, index) => (
-                  <div key={label} className={`rounded-[1.25rem] border px-4 py-4 text-sm ${step === index ? 'border-(--color-peach) bg-(--color-peach)/10 text-white' : 'border-white/10 text-white/50'}`}>
-                    <div className="text-xs uppercase tracking-[0.18em]">Step {index + 1}</div>
-                    <div className="mt-1 font-semibold">{label}</div>
+              <div className="panel-heading">Book a grooming appointment</div>
+
+              {bookingSubmitted && (
+                <div className="mb-6 rounded-[1.75rem] border border-green-400/20 bg-green-400/5 px-5 py-4 text-sm text-green-300">
+                  Your appointment has been submitted! We will confirm it soon.
+                  <button type="button" className="ml-3 underline" onClick={() => setBookingSubmitted(false)}>Book another</button>
+                </div>
+              )}
+
+              {bookingError && (
+                <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{bookingError}</div>
+              )}
+
+              {/* Step indicator */}
+              <div className="mb-8 flex gap-2">
+                {wizardSteps.map((label, i) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${i === step ? 'bg-gradient-to-br from-[var(--sage)] to-[var(--warm)] text-[var(--ink)]' : i < step ? 'bg-white/20 text-white' : 'bg-white/8 text-white/30'}`}>{i + 1}</div>
+                    <span className={`hidden text-xs sm:block ${i === step ? 'text-white' : 'text-white/35'}`}>{label}</span>
+                    {i < wizardSteps.length - 1 && <div className="h-px w-6 bg-white/15" />}
                   </div>
                 ))}
               </div>
 
-              <form onSubmit={submitBooking} className="space-y-6">
+              <form onSubmit={submitBooking}>
                 {step === 0 && (
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    {services.map((service) => (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => setBooking({ ...booking, service: service.name })}
-                        className={`rounded-[1.75rem] border p-5 text-left transition ${booking.service === service.name ? 'border-(--color-peach) bg-(--color-peach)/10' : 'border-white/10 bg-white/5'}`}
-                      >
-                        <div className="text-xl font-semibold text-white">{service.name}</div>
-                        <div className="mt-2 text-sm text-white/55">{service.duration} - {formatUGX(service.price)}</div>
-                        <p className="mt-3 text-sm leading-6 text-white/60">{service.description}</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {services.map((svc) => (
+                      <button key={svc.id} type="button"
+                        onClick={() => setBooking((b) => ({ ...b, service_id: svc.id }))}
+                        className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(booking.service_id) === String(svc.id) ? 'border-[var(--sage)] bg-[var(--sage)]/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}>
+                        <div className="font-semibold text-white">{svc.name}</div>
+                        <div className="mt-1 text-sm text-white/55">{svc.duration} min · {formatUGX(svc.price)}</div>
+                        {svc.description && <div className="mt-2 text-xs text-white/40">{svc.description}</div>}
                       </button>
                     ))}
                   </div>
                 )}
 
                 {step === 1 && (
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    {myPets.length === 0 ? (
-                      <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-6 text-white/65">
-                        Add a pet in the My Pets tab first, then return here to continue booking.
-                      </div>
-                    ) : (
-                      myPets.map((pet) => (
-                        <button
-                          key={pet.id}
-                          type="button"
-                          onClick={() => setBooking({ ...booking, petId: pet.id })}
-                          className={`rounded-[1.75rem] border p-5 text-left transition ${booking.petId === pet.id ? 'border-(--color-peach) bg-(--color-peach)/10' : 'border-white/10 bg-white/5'}`}
-                        >
-                          <div className="text-xl font-semibold text-white">{pet.name}</div>
-                          <div className="mt-2 text-sm text-white/55">{pet.breed} - {pet.age}</div>
-                          <p className="mt-3 text-sm leading-6 text-white/60">{pet.notes}</p>
-                        </button>
-                      ))
-                    )}
+                  <div className="grid gap-4">
+                    {pets.map((pet) => (
+                      <button key={pet.id} type="button"
+                        onClick={() => setBooking((b) => ({ ...b, pet_id: pet.id }))}
+                        className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(booking.pet_id) === String(pet.id) ? 'border-[var(--sage)] bg-[var(--sage)]/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}>
+                        <div className="font-semibold text-white">{pet.name}</div>
+                        <div className="text-sm text-white/55">{pet.breed}{pet.age && ` · ${pet.age}`}</div>
+                      </button>
+                    ))}
+                    {pets.length === 0 && <p className="text-sm text-white/40">No pets yet. Add one in the "My pets" tab first.</p>}
                   </div>
                 )}
 
@@ -181,115 +250,158 @@ function CustomerDashboard() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="field">
                       <span>Date</span>
-                      <input type="date" value={booking.date} onChange={(event) => setBooking({ ...booking, date: event.target.value })} required />
+                      <input type="date" value={booking.date} onChange={(e) => setBooking((b) => ({ ...b, date: e.target.value }))} min={new Date().toISOString().split('T')[0]} required />
                     </label>
                     <label className="field">
-                      <span>Time</span>
-                      <input type="time" value={booking.time} onChange={(event) => setBooking({ ...booking, time: event.target.value })} required />
+                      <span>Time (09:00 – 18:00)</span>
+                      <input type="time" value={booking.time} min="09:00" max="18:00" onChange={(e) => setBooking((b) => ({ ...b, time: e.target.value }))} required />
                     </label>
                     <label className="field md:col-span-2">
-                      <span>Special notes</span>
-                      <textarea value={booking.notes} onChange={(event) => setBooking({ ...booking, notes: event.target.value })} />
+                      <span>Notes (optional)</span>
+                      <textarea value={booking.notes} onChange={(e) => setBooking((b) => ({ ...b, notes: e.target.value }))} placeholder="Allergies, special instructions…" />
                     </label>
                   </div>
                 )}
 
                 {step === 3 && (
-                  <div className="rounded-4xl border border-white/10 bg-white/5 p-6">
-                    <div className="text-xl font-semibold text-white">Review your visit</div>
-                    <div className="mt-4 grid gap-3 text-sm text-white/65">
-                      <div>Service: {booking.service}</div>
-                      <div>Pet: {selectedPet ? `${selectedPet.name} (${selectedPet.breed})` : 'Choose a pet'}</div>
-                      <div>Date: {booking.date || 'Select a date'}</div>
-                      <div>Time: {booking.time || 'Select a time'}</div>
-                      <div>Notes: {booking.notes || 'No notes added'}</div>
+                  <div className="grid gap-4">
+                    <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                      <div className="mb-3 text-sm uppercase tracking-wider text-white/40">Review your booking</div>
+                      <div className="grid gap-2 text-sm">
+                        <div className="flex justify-between"><span className="text-white/55">Service</span><span className="text-white">{selectedService?.name}</span></div>
+                        <div className="flex justify-between"><span className="text-white/55">Pet</span><span className="text-white">{selectedPet?.name}</span></div>
+                        <div className="flex justify-between"><span className="text-white/55">Date</span><span className="text-white">{booking.date}</span></div>
+                        <div className="flex justify-between"><span className="text-white/55">Time</span><span className="text-white">{booking.time}</span></div>
+                        <div className="flex justify-between"><span className="text-white/55">Price</span><span className="text-white">{selectedService ? formatUGX(selectedService.price) : '—'}</span></div>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-3">
-                  <button type="button" disabled={step === 0} onClick={() => setStep((value) => Math.max(0, value - 1))} className="button-secondary disabled:opacity-50">
-                    Back
-                  </button>
-                  {step < 3 ? (
-                    <button type="button" disabled={!canContinue} onClick={() => setStep((value) => Math.min(3, value + 1))} className="button-primary disabled:opacity-50">
-                      Continue
-                    </button>
-                  ) : (
-                    <button type="submit" className="button-primary">
-                      Confirm booking
-                    </button>
-                  )}
+                <div className="mt-6 flex gap-3">
+                  {step > 0 && <button type="button" onClick={() => setStep((s) => s - 1)} className="button-secondary">Back</button>}
+                  {step < 3
+                    ? <button type="button" onClick={() => setStep((s) => s + 1)} disabled={!canContinue} className="button-primary disabled:opacity-50">Continue</button>
+                    : <button type="submit" className="button-primary">Confirm booking</button>
+                  }
                 </div>
               </form>
             </div>
           )}
 
+          {/* Pets */}
           {activeTab === 'pets' && (
             <div className="dashboard-panel">
               <div className="panel-heading">My pets</div>
-              <form onSubmit={submitPet} className="grid gap-4 md:grid-cols-2">
-                {[
-                  ['name', 'Pet name'],
-                  ['breed', 'Breed'],
-                  ['age', 'Age'],
-                  ['weight', 'Weight'],
-                  ['notes', 'Notes'],
-                ].map(([key, label]) => (
-                  <label key={key} className={`field ${key === 'notes' ? 'md:col-span-2' : ''}`}>
+              <form onSubmit={submitPet} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {[['name','Name'],['breed','Breed'],['age','Age'],['weight','Weight']].map(([key,label]) => (
+                  <label key={key} className="field">
                     <span>{label}</span>
-                    {key === 'notes' ? (
-                      <textarea value={petForm.notes} onChange={(event) => setPetForm({ ...petForm, notes: event.target.value })} />
-                    ) : (
-                      <input value={petForm[key]} onChange={(event) => setPetForm({ ...petForm, [key]: event.target.value })} required />
-                    )}
+                    <input value={petForm[key] ?? ''} onChange={(e) => setPetForm({ ...petForm, [key]: e.target.value })} required={key === 'name'} />
                   </label>
                 ))}
-                <div className="md:col-span-2 flex gap-3">
-                  <button type="submit" className="button-primary">
-                    {editingPetId ? 'Update pet' : 'Add pet'}
-                  </button>
-                  {editingPetId && (
-                    <button type="button" onClick={() => { setEditingPetId(null); setPetForm(blankPet) }} className="button-secondary">
-                      Cancel edit
-                    </button>
-                  )}
+                <label className="field xl:col-span-3">
+                  <span>Notes</span>
+                  <textarea value={petForm.notes ?? ''} onChange={(e) => setPetForm({ ...petForm, notes: e.target.value })} />
+                </label>
+                <div className="xl:col-span-3 flex gap-3">
+                  <button type="submit" className="button-primary">{editingPetId ? 'Update pet' : 'Add pet'}</button>
+                  {editingPetId && <button type="button" onClick={() => { setPetForm(blankPet); setEditingPetId(null) }} className="button-secondary">Cancel</button>}
                 </div>
               </form>
-              <div className="mt-8 grid gap-4 lg:grid-cols-2">
-                {myPets.map((pet) => (
+
+              <div className="mt-8 grid gap-4 md:grid-cols-2">
+                {pets.map((pet) => (
                   <article key={pet.id} className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                    <div className="text-xl font-semibold text-white">{pet.name}</div>
-                    <div className="mt-2 text-sm text-white/55">{pet.breed} - {pet.age} - {pet.weight}</div>
-                    <p className="mt-3 text-sm leading-6 text-white/60">{pet.notes}</p>
-                    <div className="mt-5 flex gap-2">
-                      <button type="button" onClick={() => { setEditingPetId(pet.id); setPetForm(pet) }} className="table-action">
-                        Edit
-                      </button>
-                      <button type="button" onClick={() => deletePet(pet.id)} className="table-action table-action-danger">
-                        Delete
-                      </button>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--sage)] to-[var(--warm)] text-xl">🐾</div>
+                      <div>
+                        <div className="font-semibold text-white">{pet.name}</div>
+                        <div className="text-sm text-white/45">{pet.breed}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-white/55">
+                      {pet.age && <span>Age: {pet.age}</span>}
+                      {pet.weight && <span>Weight: {pet.weight}</span>}
+                    </div>
+                    {pet.notes && <p className="mt-2 text-xs text-white/40">{pet.notes}</p>}
+                    <div className="mt-4 flex gap-2">
+                      <button type="button" onClick={() => { setEditingPetId(pet.id); setPetForm(pet) }} className="table-action">Edit</button>
+                      <button type="button" onClick={() => handleDeletePet(pet.id)} className="table-action table-action-danger">Remove</button>
                     </div>
                   </article>
                 ))}
+                {pets.length === 0 && <p className="text-sm text-white/40">No pets yet. Add one above.</p>}
               </div>
             </div>
           )}
 
+          {/* History */}
           {activeTab === 'history' && (
             <div className="dashboard-panel">
               <div className="panel-heading">Appointment history</div>
               <div className="grid gap-4">
-                {myAppointments.map((item) => (
+                {appointments.length === 0 && <p className="text-sm text-white/40">No appointments yet.</p>}
+                {appointments.map((item) => (
                   <article key={item.id} className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <div className="text-xl font-semibold text-white">{item.petName} - {item.service}</div>
-                        <div className="mt-2 text-sm text-white/55">{item.date} at {item.time}</div>
+                        <div className="font-semibold text-white">{item.pet_name}</div>
+                        <div className="text-sm text-white/55">{item.date} at {item.time}</div>
+                        {item.notes && <div className="mt-1 text-xs text-white/35">{item.notes}</div>}
                       </div>
-                      <div className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.18em] text-white/65">
-                        {item.status}
+                      <StatusBadge status={item.status} />
+                    </div>
+
+                    {/* Feedback form for completed, no feedback yet */}
+                    {item.status === 'completed' && !item.feedback && !feedbackSent[item.id] && (
+                      <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+                        <div className="mb-2 text-xs uppercase tracking-wider text-white/40">Rate this visit</div>
+                        <StarRating
+                          value={feedbackState[item.id]?.rating ?? 5}
+                          onChange={(r) => setFeedbackState((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), rating: r } }))}
+                        />
+                        <textarea
+                          placeholder="Leave a comment (optional)"
+                          value={feedbackState[item.id]?.comments ?? ''}
+                          onChange={(e) => setFeedbackState((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), comments: e.target.value } }))}
+                          className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/30 focus:outline-none"
+                          rows={2}
+                        />
+                        <button type="button" onClick={() => handleFeedbackSubmit(item.id)} className="mt-2 table-action">
+                          Submit feedback
+                        </button>
                       </div>
+                    )}
+                    {(item.feedback || feedbackSent[item.id]) && (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-white/40">
+                        <span>Feedback submitted</span>
+                        {item.feedback && <span>· {item.feedback.rating}/5 ★</span>}
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notifications */}
+          {activeTab === 'notifications' && (
+            <div className="dashboard-panel">
+              <div className="panel-heading">Notifications</div>
+              <div className="grid gap-4">
+                {notifications.length === 0 && <p className="text-sm text-white/40">No notifications.</p>}
+                {notifications.map((n) => (
+                  <article key={n.id} className={`rounded-[1.75rem] border p-5 ${n.is_read ? 'border-white/10 bg-white/3' : 'border-amber-400/20 bg-amber-400/5'}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="font-semibold text-white">{n.title}</div>
+                        <p className="mt-1 text-sm text-white/60">{n.message}</p>
+                        <p className="mt-2 text-xs text-white/30">{new Date(n.created_at).toLocaleString()}</p>
+                      </div>
+                      {!n.is_read && (
+                        <button type="button" onClick={() => markNotifRead(n.id)} className="table-action shrink-0">Mark read</button>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -297,25 +409,18 @@ function CustomerDashboard() {
             </div>
           )}
 
+          {/* Settings */}
           {activeTab === 'settings' && (
             <div className="dashboard-panel">
-              <div className="panel-heading">Profile settings</div>
+              <div className="panel-heading">My settings</div>
               <form onSubmit={saveSettings} className="grid gap-4 md:grid-cols-2">
-                <label className="field">
-                  <span>Name</span>
-                  <input value={settings.name} onChange={(event) => setSettings({ ...settings, name: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>Phone</span>
-                  <input value={settings.phone} onChange={(event) => setSettings({ ...settings, phone: event.target.value })} />
-                </label>
-                <label className="field md:col-span-2">
-                  <span>Location</span>
-                  <input value={settings.location} onChange={(event) => setSettings({ ...settings, location: event.target.value })} />
-                </label>
-                <button type="submit" className="button-primary md:w-fit">
-                  Save settings
-                </button>
+                {[['first_name','First name'],['last_name','Last name'],['phone','Phone'],['location','Location']].map(([key,label]) => (
+                  <label key={key} className={`field ${key === 'location' ? 'md:col-span-2' : ''}`}>
+                    <span>{label}</span>
+                    <input value={settings[key] ?? ''} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} />
+                  </label>
+                ))}
+                <button type="submit" className="button-primary md:w-fit">Save settings</button>
               </form>
             </div>
           )}

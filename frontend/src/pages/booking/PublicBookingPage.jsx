@@ -1,108 +1,145 @@
 import { CalendarClock, CheckCircle2, Dog, PawPrint } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { services } from '../../data/mockData.js'
 import { useApp } from '../../context/AppContext.jsx'
+import api from '../../utils/api.js'
 import { formatUGX } from '../../utils/currency.js'
 
-const dogServices = services.filter((service) => service.id !== 'spa-reset').concat(
-  services.find((service) => service.id === 'spa-reset') ? [services.find((service) => service.id === 'spa-reset')] : [],
-)
-
 const steps = ['Owner', 'Dog', 'Schedule', 'Review']
+
+const blankForm = {
+  ownerName: '',
+  email: '',
+  phone: '',
+  dogName: '',
+  breed: '',
+  age: '',
+  weight: '',
+  serviceId: '',
+  date: '',
+  time: '',
+  notes: '',
+}
+
+const PHONE_RE = /^\+?[1-9]\d{1,14}$/
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function PublicBookingPage() {
   const { addAppointment } = useApp()
   const [step, setStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
-  const [form, setForm] = useState({
-    ownerName: '',
-    email: '',
-    phone: '',
-    dogName: '',
-    breed: '',
-    age: '',
-    weight: '',
-    service: dogServices[0]?.name || '',
-    date: '',
-    time: '',
-    notes: '',
-  })
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [form, setForm] = useState(blankForm)
+  const [errors, setErrors] = useState({})
+  const [services, setServices] = useState([])
 
-  const canContinue =
-    (step === 0 && Boolean(form.ownerName && form.email && form.phone)) ||
-    (step === 1 && Boolean(form.dogName && form.breed)) ||
-    (step === 2 && Boolean(form.service && form.date && form.time))
+  useEffect(() => {
+    api.get('/services/').then((data) => {
+      const list = data?.results ?? data ?? []
+      setServices(list)
+      if (list.length > 0) setForm((f) => ({ ...f, serviceId: list[0].id }))
+    }).catch(() => {})
+  }, [])
 
-  function updateField(key, value) {
+  const selectedService = services.find((s) => String(s.id) === String(form.serviceId))
+
+  function set(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
+    setErrors((prev) => ({ ...prev, [key]: undefined }))
   }
 
-  function submitBooking(event) {
-    event.preventDefault()
+  function validateStep() {
+    const errs = {}
+    if (step === 0) {
+      if (!form.ownerName.trim()) errs.ownerName = 'Name is required.'
+      if (!EMAIL_RE.test(form.email)) errs.email = 'Valid email required.'
+      if (!PHONE_RE.test(form.phone)) errs.phone = 'Valid phone required (e.g. +256712345678).'
+    }
+    if (step === 1) {
+      if (!form.dogName.trim()) errs.dogName = 'Dog name is required.'
+      if (!form.breed.trim()) errs.breed = 'Breed is required.'
+    }
+    if (step === 2) {
+      if (!form.serviceId) errs.serviceId = 'Select a service.'
+      if (!form.date) errs.date = 'Select a date.'
+      if (!form.time) errs.time = 'Select a time.'
+      const t = form.time
+      if (t && (t < '09:00' || t > '18:00')) errs.time = 'Time must be between 09:00 and 18:00.'
+      if (form.date && form.date < new Date().toISOString().split('T')[0]) errs.date = 'Date must be today or in the future.'
+    }
+    return errs
+  }
 
-    addAppointment({
-      customerId: 'guest-booking',
-      customerName: form.ownerName,
-      petId: `guest-${Date.now()}`,
-      petName: form.dogName,
-      service: form.service,
+  function handleNext() {
+    const errs = validateStep()
+    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    setStep((s) => Math.min(3, s + 1))
+  }
+
+  async function submitBooking(event) {
+    event.preventDefault()
+    setSubmitError('')
+    setSubmitting(true)
+
+    const notes = [
+      `Breed: ${form.breed}`,
+      form.age ? `Age: ${form.age}` : null,
+      form.weight ? `Weight: ${form.weight}` : null,
+      `Contact: ${form.email} / ${form.phone}`,
+      form.notes || null,
+    ].filter(Boolean).join('. ')
+
+    const result = await addAppointment({
+      customer_name: form.ownerName,
+      pet_name: form.dogName,
+      service: form.serviceId,
       date: form.date,
       time: form.time,
-      groomerId: 'user-groomer',
-      groomerName: 'Assigned by staff',
       status: 'pending',
-      notes: `Dog booking only. Breed: ${form.breed}. Age: ${form.age || 'n/a'}. Weight: ${form.weight || 'n/a'}. Contact: ${form.phone}. ${form.notes}`.trim(),
+      notes,
     })
+
+    setSubmitting(false)
+
+    if (!result.ok) {
+      setSubmitError(result.message)
+      return
+    }
 
     setSubmitted(true)
     setStep(0)
-    setForm({
-      ownerName: '',
-      email: '',
-      phone: '',
-      dogName: '',
-      breed: '',
-      age: '',
-      weight: '',
-      service: dogServices[0]?.name || '',
-      date: '',
-      time: '',
-      notes: '',
-    })
+    setForm(blankForm)
   }
 
   return (
     <section className="mx-auto max-w-6xl px-4 pb-24 pt-30 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl text-center">
-        <div className="section-kicker">Dog appointments only</div>
+        <div className="section-kicker">Book online</div>
         <h1 className="section-title">Book a grooming visit without opening a dashboard.</h1>
         <p className="section-copy">
-          Customers stay on the public side of Pawze. Staff work happens in protected dashboards after the admin
-          creates their credentials.
+          No account needed for a one-off visit. Returning customers can{' '}
+          <Link to="/register" className="underline underline-offset-4">create an account</Link>{' '}
+          to manage their pets and track all bookings in one place.
         </p>
       </div>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        {/* Sidebar */}
         <aside className="rounded-[2rem] border border-white/10 bg-[var(--card)] p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-[rgba(122,170,106,0.14)] text-[var(--sage)]">
               <Dog size={22} />
             </div>
             <div>
-              <div className="text-lg font-semibold text-white">Customer access</div>
-              <div className="text-sm text-[var(--muted)]">Landing page + scheduling only</div>
+              <div className="text-lg font-semibold text-white">Public booking</div>
+              <div className="text-sm text-[var(--muted)]">No account required</div>
             </div>
           </div>
 
           <div className="mt-6 space-y-3">
             {steps.map((label, index) => (
-              <div
-                key={label}
-                className={`rounded-[1.4rem] border px-4 py-4 text-left ${
-                  index === step ? 'border-[rgba(232,184,122,0.45)] bg-[rgba(232,184,122,0.1)]' : 'border-white/10 bg-white/4'
-                }`}
-              >
+              <div key={label} className={`rounded-[1.4rem] border px-4 py-4 text-left transition-colors ${index === step ? 'border-[rgba(232,184,122,0.45)] bg-[rgba(232,184,122,0.1)]' : index < step ? 'border-white/20 bg-white/5' : 'border-white/10 bg-white/4'}`}>
                 <div className="text-xs uppercase tracking-[0.18em] text-[rgba(245,240,232,0.45)]">Step {index + 1}</div>
                 <div className="mt-1 text-sm font-semibold text-white">{label}</div>
               </div>
@@ -112,134 +149,157 @@ function PublicBookingPage() {
           <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-white/4 p-4 text-sm leading-7 text-[var(--muted)]">
             <div className="mb-2 flex items-center gap-2 text-white">
               <CalendarClock size={16} />
-              Staff access note
+              Have an account?
             </div>
-            Groomers and admins sign in through the staff portal after the admin assigns an initial password.
+            Log in as a customer to see your full booking history, add multiple pets, and receive status notifications.
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link to="/" className="button-secondary">
-              Back to landing
-            </Link>
-            <Link to="/login" className="button-primary">
-              Staff login
-            </Link>
+            <Link to="/" className="button-secondary">Back to home</Link>
+            <Link to="/login" className="button-primary">Log in</Link>
           </div>
         </aside>
 
+        {/* Form */}
         <div className="rounded-[2rem] border border-white/10 bg-[var(--card)] p-6">
           {submitted && (
             <div className="mb-6 flex items-start gap-3 rounded-[1.4rem] border border-emerald-400/25 bg-emerald-400/10 p-4 text-sm text-emerald-100">
               <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
               <div>
-                <div className="font-semibold">Booking request sent.</div>
-                <div>Your dog appointment has been added and will appear for staff in the scheduling dashboard.</div>
+                <div className="font-semibold">Booking request sent!</div>
+                <div className="mt-1 text-emerald-200/70">Your appointment is pending confirmation. Staff will reach out to confirm the details.</div>
+                <button type="button" className="mt-2 underline underline-offset-4 text-emerald-100" onClick={() => setSubmitted(false)}>
+                  Book another appointment
+                </button>
               </div>
             </div>
           )}
 
-          <form onSubmit={submitBooking} className="space-y-6">
+          {submitError && (
+            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              {submitError}
+            </div>
+          )}
+
+          <form onSubmit={submitBooking} noValidate className="space-y-6">
+            {/* Step 0 — Owner */}
             {step === 0 && (
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="field md:col-span-2">
-                  <span>Owner name</span>
-                  <input value={form.ownerName} onChange={(event) => updateField('ownerName', event.target.value)} required />
+                  <span>Owner name *</span>
+                  <input value={form.ownerName} onChange={(e) => set('ownerName', e.target.value)} placeholder="Amara Nakato" />
+                  {errors.ownerName && <p className="text-xs text-red-400">{errors.ownerName}</p>}
                 </label>
                 <label className="field">
-                  <span>Email</span>
-                  <input type="email" value={form.email} onChange={(event) => updateField('email', event.target.value)} required />
+                  <span>Email *</span>
+                  <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="amara@example.com" />
+                  {errors.email && <p className="text-xs text-red-400">{errors.email}</p>}
                 </label>
                 <label className="field">
-                  <span>Phone</span>
-                  <input value={form.phone} onChange={(event) => updateField('phone', event.target.value)} required />
+                  <span>Phone *</span>
+                  <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+256712345678" />
+                  {errors.phone && <p className="text-xs text-red-400">{errors.phone}</p>}
                 </label>
               </div>
             )}
 
+            {/* Step 1 — Dog */}
             {step === 1 && (
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="field">
-                  <span>Dog name</span>
-                  <input value={form.dogName} onChange={(event) => updateField('dogName', event.target.value)} required />
+                  <span>Dog name *</span>
+                  <input value={form.dogName} onChange={(e) => set('dogName', e.target.value)} placeholder="Max" />
+                  {errors.dogName && <p className="text-xs text-red-400">{errors.dogName}</p>}
                 </label>
                 <label className="field">
-                  <span>Breed</span>
-                  <input value={form.breed} onChange={(event) => updateField('breed', event.target.value)} required />
+                  <span>Breed *</span>
+                  <input value={form.breed} onChange={(e) => set('breed', e.target.value)} placeholder="Labrador" />
+                  {errors.breed && <p className="text-xs text-red-400">{errors.breed}</p>}
                 </label>
                 <label className="field">
-                  <span>Age</span>
-                  <input value={form.age} onChange={(event) => updateField('age', event.target.value)} placeholder="Optional" />
+                  <span>Age (optional)</span>
+                  <input value={form.age} onChange={(e) => set('age', e.target.value)} placeholder="2 years" />
                 </label>
                 <label className="field">
-                  <span>Weight</span>
-                  <input value={form.weight} onChange={(event) => updateField('weight', event.target.value)} placeholder="Optional" />
+                  <span>Weight (optional)</span>
+                  <input value={form.weight} onChange={(e) => set('weight', e.target.value)} placeholder="25 kg" />
                 </label>
               </div>
             )}
 
+            {/* Step 2 — Schedule */}
             {step === 2 && (
               <div className="space-y-4">
+                {errors.serviceId && <p className="text-xs text-red-400">{errors.serviceId}</p>}
                 <div className="grid gap-4 lg:grid-cols-2">
-                  {dogServices.map((service) => (
-                    <button
-                      key={service.id}
-                      type="button"
-                      onClick={() => updateField('service', service.name)}
-                      className={`rounded-[1.75rem] border p-5 text-left transition ${
-                        form.service === service.name ? 'border-[rgba(232,184,122,0.45)] bg-[rgba(232,184,122,0.1)]' : 'border-white/10 bg-white/4'
-                      }`}
-                    >
-                      <div className="text-lg font-semibold text-white">{service.name}</div>
-                      <div className="mt-2 text-sm text-[var(--muted)]">{service.duration} - {formatUGX(service.price)}</div>
-                      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{service.description}</p>
+                  {services.map((svc) => (
+                    <button key={svc.id} type="button" onClick={() => set('serviceId', svc.id)}
+                      className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(form.serviceId) === String(svc.id) ? 'border-[rgba(232,184,122,0.45)] bg-[rgba(232,184,122,0.1)]' : 'border-white/10 bg-white/4 hover:bg-white/7'}`}>
+                      <div className="text-lg font-semibold text-white">{svc.name}</div>
+                      <div className="mt-1 text-sm text-[var(--muted)]">{svc.duration} min · {formatUGX(svc.price)}</div>
+                      {svc.description && <p className="mt-2 text-xs leading-6 text-[var(--muted)]">{svc.description}</p>}
                     </button>
                   ))}
+                  {services.length === 0 && (
+                    <p className="text-sm text-white/40 col-span-2">Loading services…</p>
+                  )}
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="field">
-                    <span>Date</span>
-                    <input type="date" value={form.date} onChange={(event) => updateField('date', event.target.value)} required />
+                    <span>Date *</span>
+                    <input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                    {errors.date && <p className="text-xs text-red-400">{errors.date}</p>}
                   </label>
                   <label className="field">
-                    <span>Time</span>
-                    <input type="time" value={form.time} onChange={(event) => updateField('time', event.target.value)} required />
+                    <span>Time * (09:00–18:00)</span>
+                    <input type="time" value={form.time} onChange={(e) => set('time', e.target.value)} min="09:00" max="18:00" />
+                    {errors.time && <p className="text-xs text-red-400">{errors.time}</p>}
                   </label>
                   <label className="field md:col-span-2">
-                    <span>Special notes</span>
-                    <textarea value={form.notes} onChange={(event) => updateField('notes', event.target.value)} placeholder="Temperament, skin sensitivity, coat notes, pickup details..." />
+                    <span>Special notes (optional)</span>
+                    <textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Allergies, temperament, pickup preferences…" />
                   </label>
                 </div>
               </div>
             )}
 
+            {/* Step 3 — Review */}
             {step === 3 && (
               <div className="rounded-[1.75rem] border border-white/10 bg-white/4 p-6">
                 <div className="mb-4 flex items-center gap-2 text-white">
                   <PawPrint size={16} />
-                  Review your dog appointment
+                  Review your appointment
                 </div>
-                <div className="grid gap-3 text-sm text-[var(--muted)]">
-                  <div>Owner: {form.ownerName}</div>
-                  <div>Contact: {form.email} - {form.phone}</div>
-                  <div>Dog: {form.dogName} ({form.breed})</div>
-                  <div>Service: {form.service}</div>
-                  <div>Schedule: {form.date || 'Select a date'} at {form.time || 'Select a time'}</div>
-                  <div>Notes: {form.notes || 'No notes added'}</div>
-                </div>
+                <dl className="grid gap-3 text-sm">
+                  {[
+                    ['Owner', form.ownerName],
+                    ['Contact', `${form.email} · ${form.phone}`],
+                    ['Dog', `${form.dogName} (${form.breed}${form.age ? `, ${form.age}` : ''}${form.weight ? `, ${form.weight}` : ''})`],
+                    ['Service', selectedService ? `${selectedService.name} — ${selectedService.duration} min · ${formatUGX(selectedService.price)}` : '—'],
+                    ['Date', form.date || '—'],
+                    ['Time', form.time || '—'],
+                    ['Notes', form.notes || 'None'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <dt className="text-white/45 shrink-0">{label}</dt>
+                      <dd className="text-white text-right">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             )}
 
             <div className="flex flex-wrap gap-3">
-              <button type="button" disabled={step === 0} onClick={() => setStep((prev) => Math.max(0, prev - 1))} className="button-secondary disabled:opacity-50">
+              <button type="button" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className="button-secondary disabled:opacity-50">
                 Back
               </button>
               {step < 3 ? (
-                <button type="button" disabled={!canContinue} onClick={() => setStep((prev) => Math.min(3, prev + 1))} className="button-primary disabled:opacity-50">
+                <button type="button" onClick={handleNext} className="button-primary">
                   Continue
                 </button>
               ) : (
-                <button type="submit" className="button-primary">
-                  Submit dog appointment
+                <button type="submit" disabled={submitting} className="button-primary disabled:opacity-50">
+                  {submitting ? 'Submitting…' : 'Submit appointment'}
                 </button>
               )}
             </div>
