@@ -39,6 +39,46 @@ class UserPublicSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'role', 'must_change_password']
 
 
+class UserAdminCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'email',
+            'password',
+            'first_name',
+            'last_name',
+            'phone',
+            'location',
+            'avatar',
+            'role',
+            'must_change_password',
+        ]
+        read_only_fields = ['id']
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError('A user with this email already exists.')
+        return value.lower()
+
+    def validate_phone(self, value):
+        if value and not PHONE_RE.match(value):
+            raise serializers.ValidationError('Enter a valid phone number (e.g. +256712345678).')
+        return value
+
+    def validate_role(self, value):
+        if value not in {'admin', 'groomer'}:
+            raise serializers.ValidationError('Admins can only create admin or groomer accounts here.')
+        return value
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        return User.objects.create_user(password=password, **validated_data)
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
@@ -92,6 +132,13 @@ class ChangePasswordSerializer(serializers.Serializer):
         except DjangoValidationError as exc:
             raise serializers.ValidationError({'new_password': list(exc.messages)})
         return attrs
+
+
+class UserSelfSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'role', 'phone', 'location', 'avatar', 'must_change_password']
+        read_only_fields = ['id', 'username', 'email', 'role', 'must_change_password']
 
 
 # ---------------------------------------------------------------------------

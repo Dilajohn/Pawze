@@ -5,16 +5,11 @@ Pawze is a pet grooming appointment scheduling and inventory management project.
 ## Structure
 
 - `frontend/` - React + Vite + Tailwind frontend
-- `backend/` - backend workspace scaffold for API and database work
+- `backend/` - Django REST API with a dedicated `config/` project package
 
-## Merge Notes
+## Notes
 
-This desktop folder combines:
-
-- the frontend project that was built in Codex
-- the usable files recovered from the downloaded `pawze.zip`
-
-The downloaded archive was partially malformed, but its recoverable Tailwind configuration was merged into `frontend/tailwind.config.js`.
+The repository still includes some local runtime folders from development. See `.gitignore` for the folders that should remain untracked going forward.
 
 ## Frontend
 

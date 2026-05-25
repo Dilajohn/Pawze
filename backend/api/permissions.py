@@ -1,4 +1,4 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import BasePermission
 
 
 class IsAdminUserRole(BasePermission):
@@ -50,3 +50,15 @@ class IsOwnerOrStaff(BasePermission):
         # Check common owner fields
         owner = getattr(obj, 'owner', None) or getattr(obj, 'customer', None) or getattr(obj, 'user', None)
         return owner == request.user
+
+
+class IsSelfOrAdmin(BasePermission):
+    """Allow admins full access and normal users access to their own User record."""
+
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.role == 'admin':
+            return True
+        return getattr(obj, 'id', None) == request.user.id

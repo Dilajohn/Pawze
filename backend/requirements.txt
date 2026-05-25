@@ -2,7 +2,4 @@ django>=5.2,<6.0
 djangorestframework>=3.15,<4.0
 djangorestframework-simplejwt>=5.3,<6.0
 django-cors-headers>=4.3,<5.0
-argon2-cffi>=23.1
-bcrypt>=4.1
 bleach>=6.1
-psycopg2-binary>=2.9
