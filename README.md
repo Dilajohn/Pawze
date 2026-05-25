@@ -221,8 +221,4 @@ python manage.py migrate
 python manage.py test
 ```
 
-## Summary
 
-When someone lands on Pawze, they should understand it as:
-
-> a grooming salon management system that handles bookings, pets, staff workflows, notifications, and inventory through a React frontend and Django backend.
