@@ -1,5 +1,6 @@
 import { ArrowRight, CheckCircle2, PawPrint, ShieldCheck, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useApp } from '../context/AppContext.jsx'
 import { dashboardHighlights, howItWorks, landingStats, services, testimonials } from '../data/mockData.js'
 import { formatUGX } from '../utils/currency.js'
 
@@ -44,6 +45,19 @@ function StarRow() {
 }
 
 function LandingPage() {
+  const { currentUser } = useApp()
+
+  function getBookingPath(serviceName) {
+    if (currentUser?.role === 'customer') {
+      const suffix = serviceName ? `?tab=booking&service=${encodeURIComponent(serviceName)}` : '?tab=booking'
+      return `/customer${suffix}`
+    }
+
+    return serviceName
+      ? `/book?service=${encodeURIComponent(serviceName)}`
+      : '/book'
+  }
+
   return (
     <div className="overflow-hidden">
       <section className="hero-section">
@@ -69,7 +83,7 @@ function LandingPage() {
             </p>
 
             <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <Link to="/book" className="button-primary">
+              <Link to={getBookingPath()} className="button-primary">
                 Book an appointment <ArrowRight size={15} />
               </Link>
               <Link to="/register" className="button-secondary">
@@ -156,7 +170,7 @@ function LandingPage() {
                   <p style={{ margin: '0.6rem 0 1.1rem', fontSize: '0.85rem', lineHeight: 1.7, color: 'var(--muted)' }}>{service.description}</p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--warm)' }}>{formatUGX(service.price)}</span>
-                    <Link to="/book" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms', textDecoration: 'none' }}>
+                    <Link to={getBookingPath(service.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms', textDecoration: 'none' }}>
                       Book service <ArrowRight size={14} />
                     </Link>
                   </div>
@@ -248,7 +262,7 @@ function LandingPage() {
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <Link to="/book" className="button-primary">
+              <Link to={getBookingPath()} className="button-primary">
                 Book a grooming appointment <ArrowRight size={15} />
               </Link>
               <Link to="/register" className="button-secondary">

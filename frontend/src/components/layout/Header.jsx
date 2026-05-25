@@ -76,7 +76,7 @@ function Header() {
           {currentUser ? (
             <>
               <Link
-                to={currentUser.role === 'customer' ? '/book' : getDashboardPath(currentUser.role)}
+                to={currentUser.role === 'customer' ? '/customer?tab=booking' : getDashboardPath(currentUser.role)}
                 onClick={closeMenus}
                 style={{ borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.55rem 1.1rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.85)', textDecoration: 'none' }}>
                 {currentUser.role === 'customer' ? 'Book appointment' : 'Dashboard'}
@@ -155,6 +155,12 @@ function Header() {
                   style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
                   Dashboard
                 </Link>
+                {currentUser.role === 'customer' && (
+                  <Link to="/customer?tab=booking" onClick={closeMenus}
+                    style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
+                    Book appointment
+                  </Link>
+                )}
                 <button type="button" onClick={handleLogout}
                   style={{ borderRadius: '1rem', border: '1px solid rgba(245,240,232,0.1)', padding: '0.75rem 1rem', color: 'rgba(245,240,232,0.8)', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
                   Sign out

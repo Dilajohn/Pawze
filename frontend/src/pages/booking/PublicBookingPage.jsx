@@ -1,6 +1,6 @@
 import { CalendarClock, CheckCircle2, Dog, PawPrint } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useApp } from '../../context/AppContext.jsx'
 import api from '../../utils/api.js'
 import { formatUGX } from '../../utils/currency.js'
@@ -25,7 +25,8 @@ const PHONE_RE = /^\+?[1-9]\d{1,14}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function PublicBookingPage() {
-  const { addAppointment } = useApp()
+  const { addAppointment, currentUser } = useApp()
+  const location = useLocation()
   const [step, setStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -33,14 +34,27 @@ function PublicBookingPage() {
   const [form, setForm] = useState(blankForm)
   const [errors, setErrors] = useState({})
   const [services, setServices] = useState([])
+  const selectedServiceName = new URLSearchParams(location.search).get('service')
 
   useEffect(() => {
     api.get('/services/').then((data) => {
       const list = data?.results ?? data ?? []
       setServices(list)
-      if (list.length > 0) setForm((f) => ({ ...f, serviceId: list[0].id }))
+      if (list.length > 0) {
+        const matched = selectedServiceName
+          ? list.find((item) => item.name.toLowerCase() === selectedServiceName.toLowerCase())
+          : null
+        setForm((f) => ({ ...f, serviceId: matched?.id ?? list[0].id }))
+      }
     }).catch(() => {})
-  }, [])
+  }, [selectedServiceName])
+
+  if (currentUser?.role === 'customer') {
+    const redirect = selectedServiceName
+      ? `/customer?tab=booking&service=${encodeURIComponent(selectedServiceName)}`
+      : '/customer?tab=booking'
+    return <Navigate to={redirect} replace />
+  }
 
   const selectedService = services.find((s) => String(s.id) === String(form.serviceId))
 

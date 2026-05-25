@@ -1,19 +1,23 @@
 import { CalendarClock, History, PawPrint, Settings, Bell, Star } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useApp } from '../../context/AppContext.jsx'
 import api from '../../utils/api.js'
 import { formatUGX } from '../../utils/currency.js'
 
 const wizardSteps = ['Service', 'Pet', 'Schedule', 'Review']
-
 const blankPet = { name: '', breed: '', age: '', weight: '', notes: '' }
 
 function StarRating({ value, onChange }) {
   return (
     <div className="flex gap-1">
-      {[1,2,3,4,5].map((i) => (
-        <button key={i} type="button" onClick={() => onChange(i)}
-          style={{ color: i <= value ? 'var(--warm)' : 'rgba(255,255,255,0.25)', fontSize: '22px', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onChange(i)}
+          style={{ color: i <= value ? 'var(--warm)' : 'rgba(255,255,255,0.25)', fontSize: '22px', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}
+        >
           ★
         </button>
       ))}
@@ -29,6 +33,7 @@ function StatusBadge({ status }) {
     completed: 'bg-green-400/15 text-green-300',
     cancelled: 'bg-red-400/15 text-red-300',
   }
+
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-xs uppercase tracking-wider ${colors[status] ?? 'bg-white/10 text-white/60'}`}>
       {status}
@@ -37,10 +42,13 @@ function StatusBadge({ status }) {
 }
 
 function CustomerDashboard() {
+  const location = useLocation()
   const { currentUser, addPet, updatePet, deletePet, addAppointment, updateProfile, submitFeedback } = useApp()
+
   const [activeTab, setActiveTab] = useState('booking')
   const [step, setStep] = useState(0)
   const [petForm, setPetForm] = useState(blankPet)
+  const [bookingPetForm, setBookingPetForm] = useState(blankPet)
   const [editingPetId, setEditingPetId] = useState(null)
   const [settings, setSettings] = useState({
     first_name: currentUser?.first_name ?? '',
@@ -48,10 +56,9 @@ function CustomerDashboard() {
     phone: currentUser?.phone ?? '',
     location: currentUser?.location ?? '',
   })
-  const [feedbackState, setFeedbackState] = useState({})  // { [appointmentId]: { rating, comments } }
-  const [feedbackSent, setFeedbackSent] = useState({})    // { [appointmentId]: true }
+  const [feedbackState, setFeedbackState] = useState({})
+  const [feedbackSent, setFeedbackSent] = useState({})
 
-  // Remote data
   const [pets, setPets] = useState([])
   const [appointments, setAppointments] = useState([])
   const [services, setServices] = useState([])
@@ -62,6 +69,10 @@ function CustomerDashboard() {
   const [bookingError, setBookingError] = useState('')
   const [settingsMessage, setSettingsMessage] = useState('')
 
+  const searchParams = new URLSearchParams(location.search)
+  const requestedTab = searchParams.get('tab')
+  const requestedService = searchParams.get('service')
+
   const fetchAll = useCallback(async () => {
     const [petRes, apptRes, svcRes, notifRes] = await Promise.allSettled([
       api.get('/pets/'),
@@ -69,27 +80,58 @@ function CustomerDashboard() {
       api.get('/services/'),
       api.get('/notifications/'),
     ])
+
     if (petRes.status === 'fulfilled') {
-      const p = petRes.value?.results ?? petRes.value ?? []
-      setPets(p)
-      if (!booking.pet_id && p.length > 0) setBooking((b) => ({ ...b, pet_id: p[0].id }))
+      const petList = petRes.value?.results ?? petRes.value ?? []
+      setPets(petList)
+      if (!booking.pet_id && petList.length > 0) {
+        setBooking((prev) => ({ ...prev, pet_id: prev.pet_id || petList[0].id }))
+      }
     }
-    if (apptRes.status === 'fulfilled') setAppointments(apptRes.value?.results ?? apptRes.value ?? [])
+
+    if (apptRes.status === 'fulfilled') {
+      setAppointments(apptRes.value?.results ?? apptRes.value ?? [])
+    }
+
     if (svcRes.status === 'fulfilled') {
-      const s = svcRes.value?.results ?? svcRes.value ?? []
-      setServices(s)
-      if (!booking.service_id && s.length > 0) setBooking((b) => ({ ...b, service_id: s[0].id }))
+      const serviceList = svcRes.value?.results ?? svcRes.value ?? []
+      setServices(serviceList)
+      if (!booking.service_id && serviceList.length > 0) {
+        setBooking((prev) => ({ ...prev, service_id: prev.service_id || serviceList[0].id }))
+      }
     }
-    if (notifRes.status === 'fulfilled') setNotifications(notifRes.value?.results ?? notifRes.value ?? [])
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+    if (notifRes.status === 'fulfilled') {
+      setNotifications(notifRes.value?.results ?? notifRes.value ?? [])
+    }
+  }, [booking.pet_id, booking.service_id])
 
-  const selectedService = services.find((s) => String(s.id) === String(booking.service_id))
-  const selectedPet = pets.find((p) => String(p.id) === String(booking.pet_id))
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
+
+  useEffect(() => {
+    if (requestedTab === 'booking') {
+      setActiveTab('booking')
+      setStep(0)
+    }
+  }, [requestedTab])
+
+  useEffect(() => {
+    if (!requestedService || services.length === 0) return
+
+    const matched = services.find((service) => service.name.toLowerCase() === requestedService.toLowerCase())
+    if (!matched) return
+
+    setActiveTab('booking')
+    setStep(0)
+    setBooking((prev) => ({ ...prev, service_id: matched.id }))
+  }, [requestedService, services])
+
+  const selectedService = services.find((service) => String(service.id) === String(booking.service_id))
+  const selectedPet = pets.find((pet) => String(pet.id) === String(booking.pet_id))
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
-  // Wizard validation
   const canContinue =
     (step === 0 && !!booking.service_id) ||
     (step === 1 && !!booking.pet_id) ||
@@ -98,6 +140,8 @@ function CustomerDashboard() {
   async function submitBooking(event) {
     event.preventDefault()
     setBookingError('')
+
+    const customerName = `${currentUser?.first_name ?? ''} ${currentUser?.last_name ?? ''}`.trim() || currentUser?.username || 'Customer'
     const result = await addAppointment({
       pet: booking.pet_id || null,
       pet_name: selectedPet?.name ?? currentUser?.first_name ?? 'Guest pet',
@@ -105,12 +149,23 @@ function CustomerDashboard() {
       date: booking.date,
       time: booking.time,
       notes: booking.notes,
-      customer_name: `${currentUser?.first_name ?? ''} ${currentUser?.last_name ?? ''}`.trim(),
+      customer_name: customerName,
     })
-    if (!result.ok) { setBookingError(result.message); return }
+
+    if (!result.ok) {
+      setBookingError(result.message)
+      return
+    }
+
     setBookingSubmitted(true)
     setStep(0)
-    setBooking({ service_id: services[0]?.id ?? '', pet_id: pets[0]?.id ?? '', date: '', time: '', notes: '' })
+    setBooking({
+      service_id: services[0]?.id ?? '',
+      pet_id: pets[0]?.id ?? '',
+      date: '',
+      time: '',
+      notes: '',
+    })
     fetchAll()
   }
 
@@ -118,9 +173,26 @@ function CustomerDashboard() {
     event.preventDefault()
     const result = editingPetId ? await updatePet(editingPetId, petForm) : await addPet(petForm)
     if (!result.ok) return
+
     setPetForm(blankPet)
     setEditingPetId(null)
     fetchAll()
+  }
+
+  async function createBookingPet() {
+    setBookingError('')
+
+    const result = await addPet(bookingPetForm)
+    if (!result.ok) {
+      setBookingError(result.message || 'Unable to create pet profile.')
+      return
+    }
+
+    const createdPet = result.data
+    setPets((prev) => [...prev, createdPet])
+    setBookingPetForm(blankPet)
+    setBooking((prev) => ({ ...prev, pet_id: createdPet.id }))
+    setStep(2)
   }
 
   async function handleDeletePet(id) {
@@ -129,8 +201,8 @@ function CustomerDashboard() {
   }
 
   async function handleFeedbackSubmit(appointmentId) {
-    const fb = feedbackState[appointmentId] ?? { rating: 5, comments: '' }
-    const result = await submitFeedback(appointmentId, fb.rating, fb.comments)
+    const feedback = feedbackState[appointmentId] ?? { rating: 5, comments: '' }
+    const result = await submitFeedback(appointmentId, feedback.rating, feedback.comments)
     if (result.ok) {
       setFeedbackSent((prev) => ({ ...prev, [appointmentId]: true }))
       fetchAll()
@@ -147,6 +219,29 @@ function CustomerDashboard() {
     setSettingsMessage('')
     const result = await updateProfile(settings)
     setSettingsMessage(result.ok ? 'Profile updated successfully.' : (result.message || 'Unable to save profile.'))
+  }
+
+  function handleContinue() {
+    if (step === 0 && booking.service_id) {
+      setStep(1)
+      return
+    }
+
+    if (step === 1) {
+      if (pets.length === 0) {
+        setBookingError('Add your pet details below to continue.')
+        return
+      }
+
+      if (booking.pet_id) {
+        setStep(2)
+      }
+      return
+    }
+
+    if (step === 2 && booking.date && booking.time) {
+      setStep(3)
+    }
   }
 
   return (
@@ -183,8 +278,7 @@ function CustomerDashboard() {
             { key: 'notifications', label: 'Notifications', icon: Bell, badge: unreadCount },
             { key: 'settings', label: 'Settings', icon: Settings },
           ].map(({ key, label, icon: Icon, badge }) => (
-            <button key={key} type="button" onClick={() => setActiveTab(key)}
-              className={`dashboard-tab ${activeTab === key ? 'dashboard-tab-active' : ''}`}>
+            <button key={key} type="button" onClick={() => setActiveTab(key)} className={`dashboard-tab ${activeTab === key ? 'dashboard-tab-active' : ''}`}>
               <Icon size={17} />
               {label}
               {badge > 0 && <span className="ml-auto rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-black">{badge}</span>}
@@ -193,7 +287,6 @@ function CustomerDashboard() {
         </aside>
 
         <div className="space-y-6">
-          {/* Booking wizard */}
           {activeTab === 'booking' && (
             <div className="dashboard-panel">
               <div className="panel-heading">Book a grooming appointment</div>
@@ -209,7 +302,6 @@ function CustomerDashboard() {
                 <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{bookingError}</div>
               )}
 
-              {/* Step indicator */}
               <div className="mb-8 flex gap-2">
                 {wizardSteps.map((label, i) => (
                   <div key={label} className="flex items-center gap-2">
@@ -223,13 +315,16 @@ function CustomerDashboard() {
               <form onSubmit={submitBooking}>
                 {step === 0 && (
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {services.map((svc) => (
-                      <button key={svc.id} type="button"
-                        onClick={() => setBooking((b) => ({ ...b, service_id: svc.id }))}
-                        className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(booking.service_id) === String(svc.id) ? 'border-[var(--sage)] bg-[var(--sage)]/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}>
-                        <div className="font-semibold text-white">{svc.name}</div>
-                        <div className="mt-1 text-sm text-white/55">{svc.duration} min · {formatUGX(svc.price)}</div>
-                        {svc.description && <div className="mt-2 text-xs text-white/40">{svc.description}</div>}
+                    {services.map((service) => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => setBooking((prev) => ({ ...prev, service_id: service.id }))}
+                        className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(booking.service_id) === String(service.id) ? 'border-[var(--sage)] bg-[var(--sage)]/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}
+                      >
+                        <div className="font-semibold text-white">{service.name}</div>
+                        <div className="mt-1 text-sm text-white/55">{service.duration} min · {formatUGX(service.price)}</div>
+                        {service.description && <div className="mt-2 text-xs text-white/40">{service.description}</div>}
                       </button>
                     ))}
                   </div>
@@ -237,15 +332,50 @@ function CustomerDashboard() {
 
                 {step === 1 && (
                   <div className="grid gap-4">
-                    {pets.map((pet) => (
-                      <button key={pet.id} type="button"
-                        onClick={() => setBooking((b) => ({ ...b, pet_id: pet.id }))}
-                        className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(booking.pet_id) === String(pet.id) ? 'border-[var(--sage)] bg-[var(--sage)]/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}>
-                        <div className="font-semibold text-white">{pet.name}</div>
-                        <div className="text-sm text-white/55">{pet.breed}{pet.age && ` · ${pet.age}`}</div>
-                      </button>
-                    ))}
-                    {pets.length === 0 && <p className="text-sm text-white/40">No pets yet. Add one in the "My pets" tab first.</p>}
+                    {pets.length > 0 ? (
+                      pets.map((pet) => (
+                        <button
+                          key={pet.id}
+                          type="button"
+                          onClick={() => setBooking((prev) => ({ ...prev, pet_id: pet.id }))}
+                          className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(booking.pet_id) === String(pet.id) ? 'border-[var(--sage)] bg-[var(--sage)]/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}
+                        >
+                          <div className="font-semibold text-white">{pet.name}</div>
+                          <div className="text-sm text-white/55">{pet.breed}{pet.age && ` · ${pet.age}`}</div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                        <div className="mb-2 text-lg font-semibold text-white">Add your pet to continue</div>
+                        <p className="mb-4 text-sm text-white/50">
+                          Since you are already logged in, you can stay in this booking flow. Add your pet here and continue naturally to scheduling.
+                        </p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {[['name', 'Name'], ['breed', 'Breed'], ['age', 'Age'], ['weight', 'Weight']].map(([key, label]) => (
+                            <label key={key} className="field">
+                              <span>{label}</span>
+                              <input
+                                value={bookingPetForm[key] ?? ''}
+                                onChange={(event) => setBookingPetForm({ ...bookingPetForm, [key]: event.target.value })}
+                                required={key === 'name'}
+                              />
+                            </label>
+                          ))}
+                          <label className="field md:col-span-2">
+                            <span>Notes</span>
+                            <textarea
+                              value={bookingPetForm.notes ?? ''}
+                              onChange={(event) => setBookingPetForm({ ...bookingPetForm, notes: event.target.value })}
+                              placeholder="Temperament, allergies, grooming notes..."
+                            />
+                          </label>
+                          <div className="md:col-span-2 flex gap-3">
+                            <button type="button" onClick={createBookingPet} className="button-primary">Save pet and continue</button>
+                            <button type="button" onClick={() => setActiveTab('pets')} className="button-secondary">Open full pet manager</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -253,15 +383,15 @@ function CustomerDashboard() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="field">
                       <span>Date</span>
-                      <input type="date" value={booking.date} onChange={(e) => setBooking((b) => ({ ...b, date: e.target.value }))} min={new Date().toISOString().split('T')[0]} required />
+                      <input type="date" value={booking.date} onChange={(e) => setBooking((prev) => ({ ...prev, date: e.target.value }))} min={new Date().toISOString().split('T')[0]} required />
                     </label>
                     <label className="field">
                       <span>Time (09:00 – 18:00)</span>
-                      <input type="time" value={booking.time} min="09:00" max="18:00" onChange={(e) => setBooking((b) => ({ ...b, time: e.target.value }))} required />
+                      <input type="time" value={booking.time} min="09:00" max="18:00" onChange={(e) => setBooking((prev) => ({ ...prev, time: e.target.value }))} required />
                     </label>
                     <label className="field md:col-span-2">
                       <span>Notes (optional)</span>
-                      <textarea value={booking.notes} onChange={(e) => setBooking((b) => ({ ...b, notes: e.target.value }))} placeholder="Allergies, special instructions…" />
+                      <textarea value={booking.notes} onChange={(e) => setBooking((prev) => ({ ...prev, notes: e.target.value }))} placeholder="Allergies, special instructions..." />
                     </label>
                   </div>
                 )}
@@ -284,20 +414,18 @@ function CustomerDashboard() {
                 <div className="mt-6 flex gap-3">
                   {step > 0 && <button type="button" onClick={() => setStep((s) => s - 1)} className="button-secondary">Back</button>}
                   {step < 3
-                    ? <button type="button" onClick={() => setStep((s) => s + 1)} disabled={!canContinue} className="button-primary disabled:opacity-50">Continue</button>
-                    : <button type="submit" className="button-primary">Confirm booking</button>
-                  }
+                    ? <button type="button" onClick={handleContinue} disabled={!canContinue && !(step === 1 && pets.length === 0)} className="button-primary disabled:opacity-50">Continue</button>
+                    : <button type="submit" className="button-primary">Confirm booking</button>}
                 </div>
               </form>
             </div>
           )}
 
-          {/* Pets */}
           {activeTab === 'pets' && (
             <div className="dashboard-panel">
               <div className="panel-heading">My pets</div>
               <form onSubmit={submitPet} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {[['name','Name'],['breed','Breed'],['age','Age'],['weight','Weight']].map(([key,label]) => (
+                {[['name', 'Name'], ['breed', 'Breed'], ['age', 'Age'], ['weight', 'Weight']].map(([key, label]) => (
                   <label key={key} className="field">
                     <span>{label}</span>
                     <input value={petForm[key] ?? ''} onChange={(e) => setPetForm({ ...petForm, [key]: e.target.value })} required={key === 'name'} />
@@ -339,7 +467,6 @@ function CustomerDashboard() {
             </div>
           )}
 
-          {/* History */}
           {activeTab === 'history' && (
             <div className="dashboard-panel">
               <div className="panel-heading">Appointment history</div>
@@ -356,13 +483,12 @@ function CustomerDashboard() {
                       <StatusBadge status={item.status} />
                     </div>
 
-                    {/* Feedback form for completed, no feedback yet */}
                     {item.status === 'completed' && !item.feedback && !feedbackSent[item.id] && (
                       <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
                         <div className="mb-2 text-xs uppercase tracking-wider text-white/40">Rate this visit</div>
                         <StarRating
                           value={feedbackState[item.id]?.rating ?? 5}
-                          onChange={(r) => setFeedbackState((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), rating: r } }))}
+                          onChange={(rating) => setFeedbackState((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), rating } }))}
                         />
                         <textarea
                           placeholder="Leave a comment (optional)"
@@ -388,7 +514,6 @@ function CustomerDashboard() {
             </div>
           )}
 
-          {/* Notifications */}
           {activeTab === 'notifications' && (
             <div className="dashboard-panel">
               <div className="panel-heading">Notifications</div>
@@ -412,12 +537,11 @@ function CustomerDashboard() {
             </div>
           )}
 
-          {/* Settings */}
           {activeTab === 'settings' && (
             <div className="dashboard-panel">
               <div className="panel-heading">My settings</div>
               <form onSubmit={saveSettings} className="grid gap-4 md:grid-cols-2">
-                {[['first_name','First name'],['last_name','Last name'],['phone','Phone'],['location','Location']].map(([key,label]) => (
+                {[['first_name', 'First name'], ['last_name', 'Last name'], ['phone', 'Phone'], ['location', 'Location']].map(([key, label]) => (
                   <label key={key} className={`field ${key === 'location' ? 'md:col-span-2' : ''}`}>
                     <span>{label}</span>
                     <input value={settings[key] ?? ''} onChange={(e) => setSettings({ ...settings, [key]: e.target.value })} />
