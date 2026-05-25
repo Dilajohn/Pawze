@@ -145,7 +145,9 @@ function LandingPage() {
           <div style={{ marginTop: '3rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.25rem' }}>
             {services.map((service, index) => (
               <article key={service.id} className="service-card">
-                <img src={serviceImages[index % serviceImages.length]} alt={service.name} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+                <div className="service-media">
+                  <img src={serviceImages[index % serviceImages.length]} alt={service.name} />
+                </div>
                 <div style={{ padding: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
                     <h3 style={{ margin: 0, fontSize: '1.25rem', fontFamily: "'Playfair Display',serif", color: '#fff' }}>{service.name}</h3>
