@@ -41,6 +41,58 @@ function StatusBadge({ status }) {
   )
 }
 
+function BookingSpotlight({ step, selectedService, selectedPet, booking }) {
+  if (step === 0) {
+    return (
+      <div className="wizard-spotlight">
+        <div className="wizard-spotlight-title">Step 1</div>
+        <div className="wizard-spotlight-value">Choose the right service</div>
+        <p className="wizard-spotlight-copy">
+          Start with the grooming package you want, then the rest of the flow will narrow around that choice.
+        </p>
+      </div>
+    )
+  }
+
+  if (step === 1) {
+    return (
+      <div className="wizard-spotlight">
+        <div className="wizard-spotlight-title">Selected service</div>
+        <div className="wizard-spotlight-value">{selectedService?.name || 'Choose a service first'}</div>
+        <p className="wizard-spotlight-copy">
+          {selectedService
+            ? `${selectedService.duration} min · ${formatUGX(selectedService.price)}`
+            : 'Your chosen package will appear here.'}
+        </p>
+      </div>
+    )
+  }
+
+  if (step === 2) {
+    return (
+      <div className="wizard-spotlight">
+        <div className="wizard-spotlight-title">Ready to schedule</div>
+        <div className="wizard-spotlight-value">{selectedPet?.name || 'Select or create a pet'}</div>
+        <p className="wizard-spotlight-copy">
+          Pick a date and time that works, then review everything before you submit the booking.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="wizard-spotlight">
+      <div className="wizard-spotlight-title">Review</div>
+      <div className="wizard-spotlight-value">{selectedService?.name || 'Appointment summary'}</div>
+      <p className="wizard-spotlight-copy">
+        {booking.date && booking.time
+          ? `${booking.date} at ${booking.time}`
+          : 'Confirm the final details before sending the appointment.'}
+      </p>
+    </div>
+  )
+}
+
 function CustomerDashboard() {
   const location = useLocation()
   const { currentUser, addPet, updatePet, deletePet, addAppointment, updateProfile, submitFeedback } = useApp()
@@ -312,38 +364,61 @@ function CustomerDashboard() {
                 ))}
               </div>
 
-              <form onSubmit={submitBooking}>
+              <form onSubmit={submitBooking} className="wizard-shell">
+                <BookingSpotlight
+                  step={step}
+                  selectedService={selectedService}
+                  selectedPet={selectedPet}
+                  booking={booking}
+                />
+
                 {step === 0 && (
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="wizard-step-panel">
+                    <div className="mb-4">
+                      <div className="wizard-spotlight-title">Available services</div>
+                      <div className="mt-2 text-sm text-white/55">Choose one package to start your booking flow.</div>
+                    </div>
+                    <div className="wizard-card-grid sm:grid-cols-2">
                     {services.map((service) => (
                       <button
                         key={service.id}
                         type="button"
                         onClick={() => setBooking((prev) => ({ ...prev, service_id: service.id }))}
-                        className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(booking.service_id) === String(service.id) ? 'border-[var(--sage)] bg-[var(--sage)]/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}
+                        className={`wizard-choice-card ${String(booking.service_id) === String(service.id) ? 'wizard-choice-card-active' : ''}`}
                       >
-                        <div className="font-semibold text-white">{service.name}</div>
-                        <div className="mt-1 text-sm text-white/55">{service.duration} min · {formatUGX(service.price)}</div>
-                        {service.description && <div className="mt-2 text-xs text-white/40">{service.description}</div>}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="font-semibold text-white">{service.name}</div>
+                          <span className="wizard-tag">{service.duration} min</span>
+                        </div>
+                        <div className="wizard-choice-meta">{formatUGX(service.price)}</div>
+                        {service.description && <div className="wizard-choice-copy">{service.description}</div>}
                       </button>
                     ))}
+                    </div>
                   </div>
                 )}
 
                 {step === 1 && (
-                  <div className="grid gap-4">
+                  <div className="wizard-step-panel">
                     {pets.length > 0 ? (
-                      pets.map((pet) => (
-                        <button
-                          key={pet.id}
-                          type="button"
-                          onClick={() => setBooking((prev) => ({ ...prev, pet_id: pet.id }))}
-                          className={`rounded-[1.75rem] border p-5 text-left transition-colors ${String(booking.pet_id) === String(pet.id) ? 'border-[var(--sage)] bg-[var(--sage)]/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}
-                        >
-                          <div className="font-semibold text-white">{pet.name}</div>
-                          <div className="text-sm text-white/55">{pet.breed}{pet.age && ` · ${pet.age}`}</div>
-                        </button>
-                      ))
+                      <div className="wizard-card-grid">
+                        <div className="mb-1 text-sm text-white/55">Choose which pet this visit is for.</div>
+                        {pets.map((pet) => (
+                          <button
+                            key={pet.id}
+                            type="button"
+                            onClick={() => setBooking((prev) => ({ ...prev, pet_id: pet.id }))}
+                            className={`wizard-choice-card ${String(booking.pet_id) === String(pet.id) ? 'wizard-choice-card-active' : ''}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="font-semibold text-white">{pet.name}</div>
+                              {String(booking.pet_id) === String(pet.id) && <span className="wizard-tag">Selected</span>}
+                            </div>
+                            <div className="wizard-choice-meta">{pet.breed}{pet.age && ` · ${pet.age}`}{pet.weight && ` · ${pet.weight}`}</div>
+                            {pet.notes && <div className="wizard-choice-copy">{pet.notes}</div>}
+                          </button>
+                        ))}
+                      </div>
                     ) : (
                       <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                         <div className="mb-2 text-lg font-semibold text-white">Add your pet to continue</div>
@@ -380,7 +455,7 @@ function CustomerDashboard() {
                 )}
 
                 {step === 2 && (
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="wizard-step-panel grid gap-4 md:grid-cols-2">
                     <label className="field">
                       <span>Date</span>
                       <input type="date" value={booking.date} onChange={(e) => setBooking((prev) => ({ ...prev, date: e.target.value }))} min={new Date().toISOString().split('T')[0]} required />
@@ -397,17 +472,16 @@ function CustomerDashboard() {
                 )}
 
                 {step === 3 && (
-                  <div className="grid gap-4">
-                    <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                  <div className="wizard-step-panel">
                       <div className="mb-3 text-sm uppercase tracking-wider text-white/40">Review your booking</div>
-                      <div className="grid gap-2 text-sm">
-                        <div className="flex justify-between"><span className="text-white/55">Service</span><span className="text-white">{selectedService?.name}</span></div>
-                        <div className="flex justify-between"><span className="text-white/55">Pet</span><span className="text-white">{selectedPet?.name}</span></div>
-                        <div className="flex justify-between"><span className="text-white/55">Date</span><span className="text-white">{booking.date}</span></div>
-                        <div className="flex justify-between"><span className="text-white/55">Time</span><span className="text-white">{booking.time}</span></div>
-                        <div className="flex justify-between"><span className="text-white/55">Price</span><span className="text-white">{selectedService ? formatUGX(selectedService.price) : '—'}</span></div>
+                      <div className="wizard-review-grid text-sm">
+                        <div className="wizard-review-row"><span className="text-white/55">Service</span><span className="text-right text-white">{selectedService?.name}</span></div>
+                        <div className="wizard-review-row"><span className="text-white/55">Pet</span><span className="text-right text-white">{selectedPet?.name}</span></div>
+                        <div className="wizard-review-row"><span className="text-white/55">Date</span><span className="text-right text-white">{booking.date}</span></div>
+                        <div className="wizard-review-row"><span className="text-white/55">Time</span><span className="text-right text-white">{booking.time}</span></div>
+                        <div className="wizard-review-row"><span className="text-white/55">Price</span><span className="text-right text-white">{selectedService ? formatUGX(selectedService.price) : '—'}</span></div>
+                        {booking.notes && <div className="wizard-review-row"><span className="text-white/55">Notes</span><span className="max-w-[24rem] text-right text-white">{booking.notes}</span></div>}
                       </div>
-                    </div>
                   </div>
                 )}
 
