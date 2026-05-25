@@ -26,18 +26,17 @@ function ChangePasswordPrompt() {
     setLoading(false)
 
     if (!result.ok) setError(result.message)
-    // On success, AppContext clears must_change_password → ProtectedRoute renders normally
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-ink, #141410)', padding: '2rem' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)', padding: '2rem' }}>
       <div style={{ width: '100%', maxWidth: '420px', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '2rem', padding: '2.5rem' }}>
         <div style={{ width: '3rem', height: '3rem', borderRadius: '1rem', background: 'linear-gradient(135deg,var(--sage),var(--warm))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
           <KeyRound size={20} color="var(--ink)" />
         </div>
 
         <div className="section-kicker">Action required</div>
-        <h1 style={{ margin: '0.4rem 0 0.5rem', fontFamily: "'Playfair Display',serif", fontSize: '1.9rem', color: '#fff' }}>
+        <h1 style={{ margin: '0.4rem 0 0.5rem', fontFamily: "'Playfair Display',serif", fontSize: '1.9rem', color: 'var(--text-strong)' }}>
           Change your password
         </h1>
         <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', lineHeight: 1.7, color: 'var(--muted)' }}>
@@ -55,7 +54,7 @@ function ChangePasswordPrompt() {
             <span>Current (initial) password</span>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your current password"
               value={form.old_password}
               onChange={(e) => setForm({ ...form, old_password: e.target.value })}
               autoComplete="current-password"
@@ -89,7 +88,7 @@ function ChangePasswordPrompt() {
           </label>
 
           <button type="submit" disabled={loading} className="button-primary justify-center disabled:opacity-50">
-            {loading ? 'Saving…' : 'Set new password'}
+            {loading ? 'Saving...' : 'Set new password'}
           </button>
         </form>
 

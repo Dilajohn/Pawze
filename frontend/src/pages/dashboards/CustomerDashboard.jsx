@@ -1,11 +1,11 @@
-import { CalendarClock, History, PawPrint, Settings, Bell, Star } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { Bell, CalendarClock, History, PawPrint, Settings, Star } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useApp } from '../../context/AppContext.jsx'
 import api from '../../utils/api.js'
 import { formatUGX } from '../../utils/currency.js'
 
-const wizardSteps = ['Service', 'Pet', 'Schedule', 'Review']
+const wizardSteps = ['Service', 'Pet profile', 'Schedule', 'Confirm']
 const blankPet = { name: '', breed: '', age: '', weight: '', notes: '' }
 
 function StarRating({ value, onChange }) {
@@ -16,9 +16,10 @@ function StarRating({ value, onChange }) {
           key={i}
           type="button"
           onClick={() => onChange(i)}
-          style={{ color: i <= value ? 'var(--warm)' : 'rgba(255,255,255,0.25)', fontSize: '22px', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}
+          style={{ color: i <= value ? 'var(--warm)' : 'var(--muted-soft)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}
+          aria-label={`Rate ${i} star${i === 1 ? '' : 's'}`}
         >
-          ★
+          <Star size={20} fill={i <= value ? 'var(--warm)' : 'transparent'} />
         </button>
       ))}
     </div>
@@ -46,9 +47,9 @@ function BookingSpotlight({ step, selectedService, selectedPet, booking }) {
     return (
       <div className="wizard-spotlight">
         <div className="wizard-spotlight-title">Step 1</div>
-        <div className="wizard-spotlight-value">Choose the right service</div>
+        <div className="wizard-spotlight-value">Choose the service your pet needs</div>
         <p className="wizard-spotlight-copy">
-          Start with the grooming package you want, then the rest of the flow will narrow around that choice.
+          Start with the grooming package that fits this visit. Once that is set, the rest of the flow feels much quicker.
         </p>
       </div>
     )
@@ -61,8 +62,8 @@ function BookingSpotlight({ step, selectedService, selectedPet, booking }) {
         <div className="wizard-spotlight-value">{selectedService?.name || 'Choose a service first'}</div>
         <p className="wizard-spotlight-copy">
           {selectedService
-            ? `${selectedService.duration} min · ${formatUGX(selectedService.price)}`
-            : 'Your chosen package will appear here.'}
+            ? `${selectedService.duration} minutes / ${formatUGX(selectedService.price)}`
+            : 'Your chosen package will appear here once you select it.'}
         </p>
       </div>
     )
@@ -71,10 +72,10 @@ function BookingSpotlight({ step, selectedService, selectedPet, booking }) {
   if (step === 2) {
     return (
       <div className="wizard-spotlight">
-        <div className="wizard-spotlight-title">Ready to schedule</div>
-        <div className="wizard-spotlight-value">{selectedPet?.name || 'Select or create a pet'}</div>
+        <div className="wizard-spotlight-title">Pet profile ready</div>
+        <div className="wizard-spotlight-value">{selectedPet?.name || 'Select or add a pet'}</div>
         <p className="wizard-spotlight-copy">
-          Pick a date and time that works, then review everything before you submit the booking.
+          Pick the day and time that work for you, then you will get one final review screen before the request is sent.
         </p>
       </div>
     )
@@ -82,12 +83,12 @@ function BookingSpotlight({ step, selectedService, selectedPet, booking }) {
 
   return (
     <div className="wizard-spotlight">
-      <div className="wizard-spotlight-title">Review</div>
+      <div className="wizard-spotlight-title">Final review</div>
       <div className="wizard-spotlight-value">{selectedService?.name || 'Appointment summary'}</div>
       <p className="wizard-spotlight-copy">
         {booking.date && booking.time
           ? `${booking.date} at ${booking.time}`
-          : 'Confirm the final details before sending the appointment.'}
+          : 'Check the details below, then confirm when everything looks right.'}
       </p>
     </div>
   )
@@ -281,7 +282,7 @@ function CustomerDashboard() {
 
     if (step === 1) {
       if (pets.length === 0) {
-        setBookingError('Add your pet details below to continue.')
+        setBookingError('Add your pet details below to keep moving through the booking flow.')
         return
       }
 
@@ -345,8 +346,8 @@ function CustomerDashboard() {
 
               {bookingSubmitted && (
                 <div className="mb-6 rounded-[1.75rem] border border-green-400/20 bg-green-400/5 px-5 py-4 text-sm text-green-300">
-                  Your appointment has been submitted! We will confirm it soon.
-                  <button type="button" className="ml-3 underline" onClick={() => setBookingSubmitted(false)}>Book another</button>
+                  Your appointment request has been sent. We will confirm it shortly.
+                  <button type="button" className="ml-3 underline" onClick={() => setBookingSubmitted(false)}>Book another visit</button>
                 </div>
               )}
 
@@ -376,24 +377,24 @@ function CustomerDashboard() {
                   <div className="wizard-step-panel">
                     <div className="mb-4">
                       <div className="wizard-spotlight-title">Available services</div>
-                      <div className="mt-2 text-sm text-white/55">Choose one package to start your booking flow.</div>
+                      <div className="mt-2 text-sm text-white/55">Choose the grooming package you want to book for this visit.</div>
                     </div>
                     <div className="wizard-card-grid sm:grid-cols-2">
-                    {services.map((service) => (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => setBooking((prev) => ({ ...prev, service_id: service.id }))}
-                        className={`wizard-choice-card ${String(booking.service_id) === String(service.id) ? 'wizard-choice-card-active' : ''}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="font-semibold text-white">{service.name}</div>
-                          <span className="wizard-tag">{service.duration} min</span>
-                        </div>
-                        <div className="wizard-choice-meta">{formatUGX(service.price)}</div>
-                        {service.description && <div className="wizard-choice-copy">{service.description}</div>}
-                      </button>
-                    ))}
+                      {services.map((service) => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => setBooking((prev) => ({ ...prev, service_id: service.id }))}
+                          className={`wizard-choice-card ${String(booking.service_id) === String(service.id) ? 'wizard-choice-card-active' : ''}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="font-semibold text-white">{service.name}</div>
+                            <span className="wizard-tag">{service.duration} min</span>
+                          </div>
+                          <div className="wizard-choice-meta">{formatUGX(service.price)}</div>
+                          {service.description && <div className="wizard-choice-copy">{service.description}</div>}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -402,7 +403,7 @@ function CustomerDashboard() {
                   <div className="wizard-step-panel">
                     {pets.length > 0 ? (
                       <div className="wizard-card-grid">
-                        <div className="mb-1 text-sm text-white/55">Choose which pet this visit is for.</div>
+                        <div className="mb-1 text-sm text-white/55">Choose which pet this appointment is for.</div>
                         {pets.map((pet) => (
                           <button
                             key={pet.id}
@@ -414,16 +415,18 @@ function CustomerDashboard() {
                               <div className="font-semibold text-white">{pet.name}</div>
                               {String(booking.pet_id) === String(pet.id) && <span className="wizard-tag">Selected</span>}
                             </div>
-                            <div className="wizard-choice-meta">{pet.breed}{pet.age && ` · ${pet.age}`}{pet.weight && ` · ${pet.weight}`}</div>
+                            <div className="wizard-choice-meta">
+                              {[pet.breed, pet.age, pet.weight].filter(Boolean).join(' / ')}
+                            </div>
                             {pet.notes && <div className="wizard-choice-copy">{pet.notes}</div>}
                           </button>
                         ))}
                       </div>
                     ) : (
-                      <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                      <div className="surface-note p-5">
                         <div className="mb-2 text-lg font-semibold text-white">Add your pet to continue</div>
                         <p className="mb-4 text-sm text-white/50">
-                          Since you are already logged in, you can stay in this booking flow. Add your pet here and continue naturally to scheduling.
+                          You are already in the booking flow, so there is no need to leave it. Add your pet here, save, and continue straight to scheduling.
                         </p>
                         <div className="grid gap-4 md:grid-cols-2">
                           {[['name', 'Name'], ['breed', 'Breed'], ['age', 'Age'], ['weight', 'Weight']].map(([key, label]) => (
@@ -441,7 +444,7 @@ function CustomerDashboard() {
                             <textarea
                               value={bookingPetForm.notes ?? ''}
                               onChange={(event) => setBookingPetForm({ ...bookingPetForm, notes: event.target.value })}
-                              placeholder="Temperament, allergies, grooming notes..."
+                              placeholder="Temperament, allergies, or grooming preferences"
                             />
                           </label>
                           <div className="md:col-span-2 flex gap-3">
@@ -456,39 +459,42 @@ function CustomerDashboard() {
 
                 {step === 2 && (
                   <div className="wizard-step-panel grid gap-4 md:grid-cols-2">
+                    <div className="md:col-span-2 text-sm text-white/55">
+                      Choose a date and time that work for you. You will review the full appointment before it is submitted.
+                    </div>
                     <label className="field">
                       <span>Date</span>
                       <input type="date" value={booking.date} onChange={(e) => setBooking((prev) => ({ ...prev, date: e.target.value }))} min={new Date().toISOString().split('T')[0]} required />
                     </label>
                     <label className="field">
-                      <span>Time (09:00 – 18:00)</span>
+                      <span>Time (09:00 - 18:00)</span>
                       <input type="time" value={booking.time} min="09:00" max="18:00" onChange={(e) => setBooking((prev) => ({ ...prev, time: e.target.value }))} required />
                     </label>
                     <label className="field md:col-span-2">
                       <span>Notes (optional)</span>
-                      <textarea value={booking.notes} onChange={(e) => setBooking((prev) => ({ ...prev, notes: e.target.value }))} placeholder="Allergies, special instructions..." />
+                      <textarea value={booking.notes} onChange={(e) => setBooking((prev) => ({ ...prev, notes: e.target.value }))} placeholder="Allergies, pickup preferences, or anything the groomer should know" />
                     </label>
                   </div>
                 )}
 
                 {step === 3 && (
                   <div className="wizard-step-panel">
-                      <div className="mb-3 text-sm uppercase tracking-wider text-white/40">Review your booking</div>
-                      <div className="wizard-review-grid text-sm">
-                        <div className="wizard-review-row"><span className="text-white/55">Service</span><span className="text-right text-white">{selectedService?.name}</span></div>
-                        <div className="wizard-review-row"><span className="text-white/55">Pet</span><span className="text-right text-white">{selectedPet?.name}</span></div>
-                        <div className="wizard-review-row"><span className="text-white/55">Date</span><span className="text-right text-white">{booking.date}</span></div>
-                        <div className="wizard-review-row"><span className="text-white/55">Time</span><span className="text-right text-white">{booking.time}</span></div>
-                        <div className="wizard-review-row"><span className="text-white/55">Price</span><span className="text-right text-white">{selectedService ? formatUGX(selectedService.price) : '—'}</span></div>
-                        {booking.notes && <div className="wizard-review-row"><span className="text-white/55">Notes</span><span className="max-w-[24rem] text-right text-white">{booking.notes}</span></div>}
-                      </div>
+                    <div className="mb-3 text-sm uppercase tracking-wider text-white/40">Review your booking</div>
+                    <div className="wizard-review-grid text-sm">
+                      <div className="wizard-review-row"><span className="text-white/55">Service</span><span className="text-right text-white">{selectedService?.name}</span></div>
+                      <div className="wizard-review-row"><span className="text-white/55">Pet</span><span className="text-right text-white">{selectedPet?.name}</span></div>
+                      <div className="wizard-review-row"><span className="text-white/55">Date</span><span className="text-right text-white">{booking.date}</span></div>
+                      <div className="wizard-review-row"><span className="text-white/55">Time</span><span className="text-right text-white">{booking.time}</span></div>
+                      <div className="wizard-review-row"><span className="text-white/55">Price</span><span className="text-right text-white">{selectedService ? formatUGX(selectedService.price) : '-'}</span></div>
+                      {booking.notes && <div className="wizard-review-row"><span className="text-white/55">Notes</span><span className="max-w-[24rem] text-right text-white">{booking.notes}</span></div>}
+                    </div>
                   </div>
                 )}
 
                 <div className="mt-6 flex gap-3">
                   {step > 0 && <button type="button" onClick={() => setStep((s) => s - 1)} className="button-secondary">Back</button>}
                   {step < 3
-                    ? <button type="button" onClick={handleContinue} disabled={!canContinue && !(step === 1 && pets.length === 0)} className="button-primary disabled:opacity-50">Continue</button>
+                    ? <button type="button" onClick={handleContinue} disabled={!canContinue && !(step === 1 && pets.length === 0)} className="button-primary disabled:opacity-50">{step === 2 ? 'Review booking' : 'Continue'}</button>
                     : <button type="submit" className="button-primary">Confirm booking</button>}
                 </div>
               </form>
@@ -519,7 +525,9 @@ function CustomerDashboard() {
                 {pets.map((pet) => (
                   <article key={pet.id} className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--sage)] to-[var(--warm)] text-xl">🐾</div>
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--sage)] to-[var(--warm)] text-[var(--ink)]">
+                        <PawPrint size={18} />
+                      </div>
                       <div>
                         <div className="font-semibold text-white">{pet.name}</div>
                         <div className="text-sm text-white/45">{pet.breed}</div>
@@ -579,7 +587,7 @@ function CustomerDashboard() {
                     {(item.feedback || feedbackSent[item.id]) && (
                       <div className="mt-3 flex items-center gap-2 text-xs text-white/40">
                         <span>Feedback submitted</span>
-                        {item.feedback && <span>· {item.feedback.rating}/5 ★</span>}
+                        {item.feedback && <span>- {item.feedback.rating}/5 stars</span>}
                       </div>
                     )}
                   </article>

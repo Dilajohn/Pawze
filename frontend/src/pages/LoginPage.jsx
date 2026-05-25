@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext.jsx'
 
 const demoRoles = [
   { label: 'Admin', role: 'admin', desc: 'Full salon control' },
-  { label: 'Groomer', role: 'groomer', desc: 'Schedule & notes' },
+  { label: 'Groomer', role: 'groomer', desc: 'Schedule and notes' },
 ]
 
 function LoginPage() {
@@ -44,27 +44,30 @@ function LoginPage() {
   return (
     <section className="auth-shell">
       <div className="auth-card">
-        {/* Form side */}
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '2rem', padding: '2.25rem' }}>
           <div style={{ width: '3rem', height: '3rem', borderRadius: '1rem', background: 'linear-gradient(135deg,var(--sage),var(--warm))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
             <PawPrint size={22} color="var(--ink)" />
           </div>
 
           <div className="section-kicker">Welcome back</div>
-          <h1 style={{ margin: '0.4rem 0 0.5rem', fontFamily: "'Playfair Display',serif", fontSize: '2.2rem', color: '#fff' }}>Log in to Pawze</h1>
+          <h1 style={{ margin: '0.4rem 0 0.5rem', fontFamily: "'Playfair Display',serif", fontSize: '2.2rem', color: 'var(--text-strong)' }}>Log in to Pawze</h1>
           <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--muted)' }}>
             Staff members sign in here after the admin creates their account. Customers log in to manage bookings.
           </p>
 
-          {/* Demo buttons */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.6rem', marginBottom: '1.5rem' }}>
             {demoRoles.map((item) => (
-              <button key={item.role} type="button" onClick={() => handleDemo(item.role)} disabled={loading}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', borderRadius: '1.25rem', padding: '0.85rem 0.9rem', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'border-color 180ms, background 180ms', opacity: loading ? 0.6 : 1 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(232,184,122,0.4)'; e.currentTarget.style.background='rgba(255,255,255,0.07)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.background='rgba(255,255,255,0.04)' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#fff' }}>{item.label}</span>
-                <span style={{ fontSize: '0.72rem', color: 'rgba(245,240,232,0.45)', marginTop: '0.1rem' }}>{item.desc}</span>
+              <button
+                key={item.role}
+                type="button"
+                onClick={() => handleDemo(item.role)}
+                disabled={loading}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', borderRadius: '1.25rem', padding: '0.85rem 0.9rem', border: '1px solid var(--border)', background: 'var(--card-soft)', cursor: 'pointer', transition: 'border-color 180ms, background 180ms', opacity: loading ? 0.6 : 1 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(232,184,122,0.4)'; e.currentTarget.style.background = 'var(--surface-hover)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--card-soft)' }}
+              >
+                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-strong)' }}>{item.label}</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--muted-soft)', marginTop: '0.1rem' }}>{item.desc}</span>
               </button>
             ))}
           </div>
@@ -98,7 +101,7 @@ function LoginPage() {
               <span>Password</span>
               <input
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 autoComplete="current-password"
@@ -107,24 +110,23 @@ function LoginPage() {
               />
             </label>
             <button type="submit" disabled={loading} className="button-primary justify-center disabled:opacity-50">
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
           <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted)', textAlign: 'center' }}>
             New customer?{' '}
-            <Link to="/register" style={{ color: '#fff', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+            <Link to="/register" style={{ color: 'var(--text-strong)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
               Create an account
             </Link>
           </p>
         </div>
 
-        {/* Image side */}
         <div className="auth-side hidden lg:block">
           <img src="/images/cutest-puppy.jpg" alt="Dog grooming" className="h-full w-full rounded-[2rem] object-cover" />
           <div className="auth-overlay">
             <div className="section-kicker">Pawze platform</div>
-            <div className="mt-2 text-3xl font-semibold text-white">Appointments, pets, and inventory — one clean workflow.</div>
+            <div className="mt-2 text-3xl font-semibold text-white">Appointments, pets, and inventory - one clean workflow.</div>
             <p className="mt-3 max-w-sm text-sm leading-7 text-white/70">
               Staff and customers each get a tailored dashboard. Everything updates in real time as appointments move through the grooming pipeline.
             </p>

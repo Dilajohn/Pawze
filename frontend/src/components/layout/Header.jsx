@@ -1,7 +1,8 @@
-import { Bell, ChevronDown, LogOut, Menu, PawPrint, User, X } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, Moon, PawPrint, Sun, User, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext.jsx'
+import { useTheme } from '../../context/ThemeContext.jsx'
 
 const navItems = [
   { label: 'Services',     href: '/#services' },
@@ -12,6 +13,7 @@ const navItems = [
 
 function Header() {
   const { currentUser, logout, getDashboardPath } = useApp()
+  const { theme, isLight, toggleTheme } = useTheme()
   const location  = useLocation()
   const navigate  = useNavigate()
   const [isScrolled, setIsScrolled] = useState(false)
@@ -41,8 +43,8 @@ function Header() {
   return (
     <header style={{
       position: 'fixed', inset: '0 0 auto 0', zIndex: 50,
-      borderBottom: '1px solid rgba(245,240,232,0.08)',
-      background: scrolled ? 'rgba(10,11,15,0.82)' : 'transparent',
+      borderBottom: '1px solid var(--border)',
+      background: scrolled ? 'var(--header-bg)' : 'transparent',
       backdropFilter: scrolled ? 'blur(20px)' : 'none',
       transition: 'background 300ms ease, backdrop-filter 300ms ease',
     }}>
@@ -54,8 +56,8 @@ function Header() {
             <PawPrint size={18} color="var(--ink)" />
           </div>
           <div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: '1.2rem', fontWeight: 700, color: '#fff', lineHeight: 1 }}>Pawze</div>
-            <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.28em', color: 'rgba(245,240,232,0.45)', lineHeight: 1 }}>Tail-wag workflows</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-strong)', lineHeight: 1 }}>Pawze</div>
+            <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.28em', color: 'var(--muted-soft)', lineHeight: 1 }}>Tail-wag workflows</div>
           </div>
         </Link>
 
@@ -63,9 +65,9 @@ function Header() {
         <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }} className="hidden lg:flex">
           {navItems.map((item) => (
             <a key={item.label} href={item.href} onClick={closeMenus}
-              style={{ fontSize: '0.9rem', color: 'rgba(245,240,232,0.65)', textDecoration: 'none', transition: 'color 180ms' }}
-              onMouseEnter={e => e.target.style.color = '#fff'}
-              onMouseLeave={e => e.target.style.color = 'rgba(245,240,232,0.65)'}>
+              style={{ fontSize: '0.9rem', color: 'var(--muted)', textDecoration: 'none', transition: 'color 180ms' }}
+              onMouseEnter={e => e.target.style.color = 'var(--text-strong)'}
+              onMouseLeave={e => e.target.style.color = 'var(--muted)'}>
               {item.label}
             </a>
           ))}
@@ -73,18 +75,28 @@ function Header() {
 
         {/* Desktop actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="hidden lg:flex">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="theme-toggle"
+            aria-label={`Switch to ${isLight ? 'dark' : 'light'} mode`}
+            title={`Current theme: ${theme}`}
+          >
+            {isLight ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+
           {currentUser ? (
             <>
               <Link
                 to={currentUser.role === 'customer' ? '/customer?tab=booking' : getDashboardPath(currentUser.role)}
                 onClick={closeMenus}
-                style={{ borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.55rem 1.1rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.85)', textDecoration: 'none' }}>
+                style={{ borderRadius: '999px', border: '1px solid var(--border)', padding: '0.55rem 1.1rem', fontSize: '0.88rem', color: 'var(--muted-strong)', textDecoration: 'none' }}>
                 {currentUser.role === 'customer' ? 'Book appointment' : 'Dashboard'}
               </Link>
 
               <div style={{ position: 'relative' }}>
                 <button type="button" onClick={() => setMenuOpen(v => !v)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', background: 'rgba(255,255,255,0.04)', padding: '0.45rem 0.75rem 0.45rem 0.45rem', cursor: 'pointer' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderRadius: '999px', border: '1px solid var(--border)', background: 'var(--card-soft)', padding: '0.45rem 0.75rem 0.45rem 0.45rem', cursor: 'pointer' }}>
 
                   {avatarSrc
                     ? <img src={avatarSrc} alt={displayName} style={{ width: '2.2rem', height: '2.2rem', borderRadius: '999px', objectFit: 'cover' }} />
@@ -96,20 +108,20 @@ function Header() {
                   }
 
                   <div style={{ lineHeight: 1.2, textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 500, color: '#fff' }}>{displayName}</div>
-                    <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(245,240,232,0.4)' }}>{currentUser.role}</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-strong)' }}>{displayName}</div>
+                    <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--muted-soft)' }}>{currentUser.role}</div>
                   </div>
-                  <ChevronDown size={15} color="rgba(245,240,232,0.5)" />
+                  <ChevronDown size={15} color="var(--muted)" />
                 </button>
 
                 {menuOpen && (
-                  <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 0.75rem)', width: '14rem', borderRadius: '1.5rem', border: '1px solid rgba(245,240,232,0.1)', background: 'var(--panel)', padding: '0.6rem', boxShadow: '0 24px 64px rgba(0,0,0,0.5)', zIndex: 100 }}>
+                  <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 0.75rem)', width: '14rem', borderRadius: '1.5rem', border: '1px solid var(--border)', background: 'var(--panel)', padding: '0.6rem', boxShadow: '0 24px 64px var(--shadow-strong)', zIndex: 100 }}>
                     <NavLink to={currentUser.role === 'customer' ? '/customer' : getDashboardPath(currentUser.role)} onClick={closeMenus}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderRadius: '1rem', padding: '0.75rem 0.85rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.8)', textDecoration: 'none' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderRadius: '1rem', padding: '0.75rem 0.85rem', fontSize: '0.88rem', color: 'var(--muted-strong)', textDecoration: 'none' }}>
                       <User size={15} /> Open dashboard
                     </NavLink>
                     <button type="button" onClick={handleLogout}
-                      style={{ display: 'flex', width: '100%', alignItems: 'center', gap: '0.6rem', borderRadius: '1rem', padding: '0.75rem 0.85rem', fontSize: '0.88rem', color: 'rgba(245,240,232,0.8)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                      style={{ display: 'flex', width: '100%', alignItems: 'center', gap: '0.6rem', borderRadius: '1rem', padding: '0.75rem 0.85rem', fontSize: '0.88rem', color: 'var(--muted-strong)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                       <LogOut size={15} /> Sign out
                     </button>
                   </div>
@@ -118,10 +130,10 @@ function Header() {
             </>
           ) : (
             <>
-              <Link to="/login" onClick={closeMenus} style={{ fontSize: '0.9rem', color: 'rgba(245,240,232,0.65)', textDecoration: 'none' }}>
+              <Link to="/login" onClick={closeMenus} style={{ fontSize: '0.9rem', color: 'var(--muted)', textDecoration: 'none' }}>
                 Staff log in
               </Link>
-              <Link to="/register" onClick={closeMenus} style={{ fontSize: '0.9rem', color: 'rgba(245,240,232,0.65)', textDecoration: 'none' }}>
+              <Link to="/register" onClick={closeMenus} style={{ fontSize: '0.9rem', color: 'var(--muted)', textDecoration: 'none' }}>
                 Register
               </Link>
               <Link to="/book" onClick={closeMenus} className="button-primary" style={{ padding: '0.65rem 1.3rem', fontSize: '0.88rem' }}>
@@ -132,48 +144,59 @@ function Header() {
         </div>
 
         {/* Mobile toggle */}
+        <div className="flex items-center gap-2 lg:hidden">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="theme-toggle"
+          aria-label={`Switch to ${isLight ? 'dark' : 'light'} mode`}
+          title={`Current theme: ${theme}`}
+        >
+          {isLight ? <Moon size={16} /> : <Sun size={16} />}
+        </button>
         <button type="button" onClick={() => setMobileOpen(v => !v)}
-          style={{ borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', padding: '0.6rem', color: '#fff', background: 'none', cursor: 'pointer' }}
+          style={{ borderRadius: '999px', border: '1px solid var(--border)', padding: '0.6rem', color: 'var(--text-strong)', background: 'none', cursor: 'pointer' }}
           className="lg:hidden" aria-label="Toggle nav">
           {mobileOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div style={{ borderTop: '1px solid rgba(245,240,232,0.08)', background: 'rgba(10,11,15,0.96)', padding: '1rem 1.5rem' }} className="lg:hidden">
+        <div style={{ borderTop: '1px solid var(--border)', background: 'var(--header-mobile-bg)', padding: '1rem 1.5rem' }} className="lg:hidden">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {navItems.map((item) => (
               <a key={item.label} href={item.href} onClick={closeMenus}
-                style={{ borderRadius: '1rem', padding: '0.75rem 1rem', color: 'rgba(245,240,232,0.8)', textDecoration: 'none', display: 'block' }}>
+                style={{ borderRadius: '1rem', padding: '0.75rem 1rem', color: 'var(--muted-strong)', textDecoration: 'none', display: 'block' }}>
                 {item.label}
               </a>
             ))}
             {currentUser ? (
               <>
                 <Link to={getDashboardPath(currentUser.role)} onClick={closeMenus}
-                  style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
+                  style={{ borderRadius: '1rem', background: 'var(--surface-soft)', padding: '0.75rem 1rem', color: 'var(--text-strong)', textDecoration: 'none', display: 'block' }}>
                   Dashboard
                 </Link>
                 {currentUser.role === 'customer' && (
                   <Link to="/customer?tab=booking" onClick={closeMenus}
-                    style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
+                    style={{ borderRadius: '1rem', background: 'var(--surface-soft)', padding: '0.75rem 1rem', color: 'var(--text-strong)', textDecoration: 'none', display: 'block' }}>
                     Book appointment
                   </Link>
                 )}
                 <button type="button" onClick={handleLogout}
-                  style={{ borderRadius: '1rem', border: '1px solid rgba(245,240,232,0.1)', padding: '0.75rem 1rem', color: 'rgba(245,240,232,0.8)', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ borderRadius: '1rem', border: '1px solid var(--border)', padding: '0.75rem 1rem', color: 'var(--muted-strong)', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
                   Sign out
                 </button>
               </>
             ) : (
               <>
                 <Link to="/login" onClick={closeMenus}
-                  style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
+                  style={{ borderRadius: '1rem', background: 'var(--surface-soft)', padding: '0.75rem 1rem', color: 'var(--text-strong)', textDecoration: 'none', display: 'block' }}>
                   Staff log in
                 </Link>
                 <Link to="/register" onClick={closeMenus}
-                  style={{ borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', color: '#fff', textDecoration: 'none', display: 'block' }}>
+                  style={{ borderRadius: '1rem', background: 'var(--surface-soft)', padding: '0.75rem 1rem', color: 'var(--text-strong)', textDecoration: 'none', display: 'block' }}>
                   Register
                 </Link>
                 <Link to="/book" onClick={closeMenus} className="button-primary" style={{ textAlign: 'center' }}>

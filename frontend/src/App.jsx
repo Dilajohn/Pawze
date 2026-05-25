@@ -26,7 +26,7 @@ function AppFrame() {
   const isLanding = location.pathname === '/'
 
   return (
-    <div className="min-h-screen bg-[var(--color-ink)] text-white">
+    <div className="min-h-screen" style={{ background: 'var(--bg-app)', color: 'var(--text-body)' }}>
       <Header />
       <main className={isLanding ? '' : 'pt-24'}>
         <Routes>

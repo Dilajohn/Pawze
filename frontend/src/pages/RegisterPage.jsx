@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { PawPrint, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, PawPrint } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 
 function validate(form) {
@@ -64,7 +64,6 @@ function RegisterPage() {
   return (
     <section className="auth-shell">
       <div className="auth-card">
-        {/* Image side */}
         <div className="auth-side hidden lg:block">
           <img
             src="/images/german-shepherd.jpg"
@@ -82,7 +81,6 @@ function RegisterPage() {
           </div>
         </div>
 
-        {/* Form side */}
         <div className="rounded-[2rem] border border-white/10 bg-[var(--card)] p-8">
           <div style={{ width: '3rem', height: '3rem', borderRadius: '1rem', background: 'linear-gradient(135deg,var(--sage),var(--warm))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
             <PawPrint size={22} color="var(--ink)" />
@@ -195,7 +193,7 @@ function RegisterPage() {
               disabled={submitting}
               className="button-primary w-full justify-center disabled:opacity-50"
             >
-              {submitting ? 'Creating account…' : 'Create account'}
+              {submitting ? 'Creating account...' : 'Create account'}
             </button>
           </form>
 

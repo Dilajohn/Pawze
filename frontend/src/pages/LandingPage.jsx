@@ -11,7 +11,7 @@ const serviceImages = [
   '/images/cutest-puppy.jpg',
 ]
 
-function WavyDivider({ flip = false, color = 'rgba(19,20,26,1)' }) {
+function WavyDivider({ flip = false, color = 'var(--panel)' }) {
   return (
     <div style={{ lineHeight: 0, transform: flip ? 'scaleY(-1)' : 'none', overflow: 'hidden' }}>
       <svg viewBox="0 0 1440 72" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style={{ width: '100%', display: 'block' }}>
@@ -23,10 +23,10 @@ function WavyDivider({ flip = false, color = 'rgba(19,20,26,1)' }) {
 
 function RibbonText({ children, color = 'rgba(122,170,106,0.18)' }) {
   return (
-    <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '1rem 0', borderTop: '1px solid rgba(245,240,232,0.08)', borderBottom: '1px solid rgba(245,240,232,0.08)', background: color }}>
+    <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '1rem 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: color }}>
       <div style={{ display: 'inline-flex', animation: 'marquee 22s linear infinite', gap: '4rem' }}>
         {[...Array(3)].map((_, i) => (
-          <span key={i} style={{ display: 'inline-flex', gap: '3rem', alignItems: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.28em', color: 'rgba(245,240,232,0.55)' }}>
+          <span key={i} style={{ display: 'inline-flex', gap: '3rem', alignItems: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.28em', color: 'var(--muted)' }}>
             {children}
           </span>
         ))}
@@ -66,20 +66,23 @@ function LandingPage() {
 
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem', display: 'grid', alignItems: 'center', gap: '3rem', paddingTop: '8rem', paddingBottom: '5rem', gridTemplateColumns: '1fr' }} className="lg:grid-cols-[1.1fr_0.9fr]">
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '999px', border: '1px solid rgba(245,240,232,0.12)', background: 'rgba(255,255,255,0.05)', padding: '0.4rem 1rem 0.4rem 0.6rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '999px', border: '1px solid var(--border)', background: 'var(--surface-soft)', padding: '0.4rem 1rem 0.4rem 0.6rem', marginBottom: '1.5rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,var(--sage),var(--warm))', borderRadius: '999px', padding: '0.3rem' }}>
                 <PawPrint size={13} color="var(--ink)" />
               </span>
-              <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.24em', color: 'rgba(245,240,232,0.7)' }}>Grooming workflows with heart</span>
+              <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.24em', color: 'var(--muted-strong)' }}>Grooming workflows with heart</span>
             </div>
 
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(3rem, 6.5vw, 5.5rem)', lineHeight: 1.03, color: '#fff', margin: 0 }}>
-              Pawze<span style={{ display: 'block', backgroundImage: 'linear-gradient(135deg, var(--sage), var(--warm))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>Happy tail-wags,</span>
-              <span style={{ color: '#fff' }}>every visit.</span>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(3rem, 6.5vw, 5.5rem)', lineHeight: 1.03, color: 'var(--text-strong)', margin: 0 }}>
+              Pawze
+              <span style={{ display: 'block', backgroundImage: 'linear-gradient(135deg, var(--sage), var(--warm))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>
+                Happy tail-wags,
+              </span>
+              <span style={{ color: 'var(--text-strong)' }}>every visit.</span>
             </h1>
 
             <p style={{ marginTop: '1.5rem', maxWidth: '30rem', fontSize: '1.05rem', lineHeight: 1.85, color: 'var(--muted)' }}>
-              A polished platform for appointment scheduling, pet records, and inventory — built for modern grooming salons.
+              A polished platform for appointment scheduling, pet records, and inventory - built for modern grooming salons.
             </p>
 
             <div style={{ marginTop: '2rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -94,8 +97,8 @@ function LandingPage() {
             <div style={{ marginTop: '2.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
               {dashboardHighlights.map((item) => (
                 <div key={item.title} className="glass-panel" style={{ padding: '1.1rem 1.25rem' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', marginBottom: '0.35rem' }}>{item.title}</div>
-                  <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.65, color: 'rgba(245,240,232,0.55)' }}>{item.body}</p>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-strong)', marginBottom: '0.35rem' }}>{item.title}</div>
+                  <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.65, color: 'var(--muted)' }}>{item.body}</p>
                 </div>
               ))}
             </div>
@@ -105,18 +108,18 @@ function LandingPage() {
             <img src="/images/cutest-puppy.jpg" alt="Happy groomed puppy" className="hero-img" />
 
             <div className="float-card" style={{ top: '2rem', left: '-1.5rem' }}>
-              <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.22em', color: 'rgba(245,240,232,0.4)' }}>Today's flow</div>
-              <div style={{ marginTop: '0.3rem', fontSize: '2rem', fontFamily: "'Playfair Display',serif", color: '#fff', lineHeight: 1 }}>18</div>
-              <div style={{ fontSize: '0.78rem', color: 'rgba(245,240,232,0.55)', marginTop: '0.2rem' }}>visits · 4 groomers</div>
+              <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.22em', color: 'var(--muted-soft)' }}>Today's flow</div>
+              <div style={{ marginTop: '0.3rem', fontSize: '2rem', fontFamily: "'Playfair Display',serif", color: 'var(--text-strong)', lineHeight: 1 }}>18</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: '0.2rem' }}>visits / 4 groomers</div>
             </div>
 
             <div className="float-card float-card-b" style={{ bottom: '-1.5rem', right: '-1rem', maxWidth: '14rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.22em', color: 'rgba(245,240,232,0.4)' }}>Pet profile</div>
+                <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.22em', color: 'var(--muted-soft)' }}>Pet profile</div>
                 <ShieldCheck size={16} color="var(--sage)" />
               </div>
-              <div style={{ marginTop: '0.4rem', fontSize: '1.4rem', fontFamily: "'Playfair Display',serif", color: '#fff' }}>Sunny</div>
-              <div style={{ fontSize: '0.78rem', color: 'rgba(245,240,232,0.55)', marginTop: '0.25rem', lineHeight: 1.6 }}>Sensitive skin flagged · preferred groomer saved</div>
+              <div style={{ marginTop: '0.4rem', fontSize: '1.4rem', fontFamily: "'Playfair Display',serif", color: 'var(--text-strong)' }}>Sunny</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: '0.25rem', lineHeight: 1.6 }}>Sensitive skin flagged / preferred groomer saved</div>
             </div>
           </div>
         </div>
@@ -124,17 +127,17 @@ function LandingPage() {
 
       <RibbonText color="rgba(122,170,106,0.1)">
         <span>Appointment scheduling</span>
-        <span>·</span>
+        <span>/</span>
         <span>Pet records</span>
-        <span>·</span>
+        <span>/</span>
         <span>Inventory tracking</span>
-        <span>·</span>
+        <span>/</span>
         <span>Role-based access</span>
-        <span>·</span>
+        <span>/</span>
         <span>Groomer dashboard</span>
-        <span>·</span>
+        <span>/</span>
         <span>Admin controls</span>
-        <span>·</span>
+        <span>/</span>
       </RibbonText>
 
       <section style={{ background: 'var(--panel)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
@@ -164,13 +167,13 @@ function LandingPage() {
                 </div>
                 <div style={{ padding: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontFamily: "'Playfair Display',serif", color: '#fff' }}>{service.name}</h3>
-                    <span style={{ flexShrink: 0, borderRadius: '999px', padding: '0.3rem 0.8rem', fontSize: '0.72rem', background: 'rgba(245,240,232,0.08)', color: 'rgba(245,240,232,0.6)' }}>{service.duration}</span>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontFamily: "'Playfair Display',serif", color: 'var(--text-strong)' }}>{service.name}</h3>
+                    <span style={{ flexShrink: 0, borderRadius: '999px', padding: '0.3rem 0.8rem', fontSize: '0.72rem', background: 'var(--surface-soft)', color: 'var(--muted)' }}>{service.duration}</span>
                   </div>
                   <p style={{ margin: '0.6rem 0 1.1rem', fontSize: '0.85rem', lineHeight: 1.7, color: 'var(--muted)' }}>{service.description}</p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--warm)' }}>{formatUGX(service.price)}</span>
-                    <Link to={getBookingPath(service.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms', textDecoration: 'none' }}>
+                    <Link to={getBookingPath(service.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--muted-strong)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms', textDecoration: 'none' }}>
                       Book service <ArrowRight size={14} />
                     </Link>
                   </div>
@@ -181,12 +184,12 @@ function LandingPage() {
         </div>
       </section>
 
-      <WavyDivider color="rgba(19,20,26,1)" />
+      <WavyDivider color="var(--panel)" />
       <section id="how-it-works" style={{ background: 'var(--panel)', padding: '5rem 0' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem', display: 'grid', gap: '3rem', gridTemplateColumns: '1fr' }} className="lg:grid-cols-[0.95fr_1.05fr]">
           <div style={{ position: 'relative', borderRadius: '2rem', overflow: 'hidden', border: '1px solid var(--border)', minHeight: '400px' }}>
             <img src="/images/german-shepherd.jpg" alt="Grooming session" style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '400px' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(10,11,15,0.9))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '2rem' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, var(--image-overlay))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '2rem' }}>
               <div className="section-kicker">Visual direction</div>
               <h3 style={{ margin: '0.5rem 0 0', fontFamily: "'Playfair Display',serif", fontSize: '1.6rem', color: '#fff', lineHeight: 1.15 }}>Warm editorial styling with bold contrast and pet-centered imagery.</h3>
             </div>
@@ -194,13 +197,13 @@ function LandingPage() {
 
           <div>
             <div className="section-kicker">How it works</div>
-            <h2 className="section-title" style={{ marginBottom: '1.75rem' }}>From booking to bow — four smooth steps.</h2>
+            <h2 className="section-title" style={{ marginBottom: '1.75rem' }}>From booking to bow - four smooth steps.</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {howItWorks.map((item) => (
                 <div key={item.step} className="step-card">
                   <div className="step-num">{item.step}</div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#fff' }}>{item.title}</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-strong)' }}>{item.title}</h3>
                     <p style={{ margin: '0.4rem 0 0', fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--muted)' }}>{item.description}</p>
                   </div>
                 </div>
@@ -209,7 +212,7 @@ function LandingPage() {
           </div>
         </div>
       </section>
-      <WavyDivider color="rgba(19,20,26,1)" flip />
+      <WavyDivider color="var(--panel)" flip />
 
       <section id="testimonials" style={{ padding: '6rem 0' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
@@ -234,8 +237,8 @@ function LandingPage() {
                     style={{ width: '3rem', height: '3rem', borderRadius: '1rem', objectFit: 'cover' }}
                   />
                   <div>
-                    <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.95rem' }}>{item.name}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'rgba(245,240,232,0.45)' }}>{item.role}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-strong)', fontSize: '0.95rem' }}>{item.name}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--muted-soft)' }}>{item.role}</div>
                   </div>
                 </div>
                 <StarRow />
@@ -244,7 +247,7 @@ function LandingPage() {
             ))}
           </div>
 
-          <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.55)' }}>
+          <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--muted)' }}>
             <CheckCircle2 size={16} color="var(--sage)" />
             Aligned with the research scope: online scheduling, customer records, inventory tracking, and responsive access.
           </div>
@@ -258,7 +261,7 @@ function LandingPage() {
               <div className="section-kicker">Launch ready</div>
               <h2 className="section-title" style={{ maxWidth: '32rem' }}>See all three dashboards working together in one click.</h2>
               <p className="section-copy" style={{ maxWidth: '30rem' }}>
-                Demo accounts are one click away — inspect the admin, groomer, and customer experiences without typing a single credential.
+                Demo accounts are one click away - inspect the admin, groomer, and customer experiences without typing a single credential.
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
