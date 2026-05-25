@@ -60,6 +60,7 @@ function CustomerDashboard() {
   const [booking, setBooking] = useState({ service_id: '', pet_id: '', date: '', time: '', notes: '' })
   const [bookingSubmitted, setBookingSubmitted] = useState(false)
   const [bookingError, setBookingError] = useState('')
+  const [settingsMessage, setSettingsMessage] = useState('')
 
   const fetchAll = useCallback(async () => {
     const [petRes, apptRes, svcRes, notifRes] = await Promise.allSettled([
@@ -143,7 +144,9 @@ function CustomerDashboard() {
 
   async function saveSettings(event) {
     event.preventDefault()
-    await updateProfile(settings)
+    setSettingsMessage('')
+    const result = await updateProfile(settings)
+    setSettingsMessage(result.ok ? 'Profile updated successfully.' : (result.message || 'Unable to save profile.'))
   }
 
   return (
@@ -421,6 +424,7 @@ function CustomerDashboard() {
                   </label>
                 ))}
                 <button type="submit" className="button-primary md:w-fit">Save settings</button>
+                {settingsMessage && <p className="md:col-span-2 text-sm text-white/65">{settingsMessage}</p>}
               </form>
             </div>
           )}

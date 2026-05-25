@@ -36,6 +36,7 @@ function GroomerDashboard() {
   const [notifications, setNotifications] = useState([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [settingsMessage, setSettingsMessage] = useState('')
   const [settings, setSettings] = useState({
     first_name: currentUser?.first_name ?? '',
     last_name: currentUser?.last_name ?? '',
@@ -74,7 +75,9 @@ function GroomerDashboard() {
 
   async function saveSettings(event) {
     event.preventDefault()
-    await updateProfile(settings)
+    setSettingsMessage('')
+    const result = await updateProfile(settings)
+    setSettingsMessage(result.ok ? 'Profile updated successfully.' : (result.message || 'Unable to save profile.'))
   }
 
   const unreadCount = notifications.filter((n) => !n.is_read).length
@@ -215,6 +218,7 @@ function GroomerDashboard() {
                   </label>
                 ))}
                 <button type="submit" className="button-primary md:w-fit">Save settings</button>
+                {settingsMessage && <p className="md:col-span-2 text-sm text-white/65">{settingsMessage}</p>}
               </form>
             </div>
           )}

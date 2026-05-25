@@ -154,9 +154,9 @@ function LandingPage() {
                   <p style={{ margin: '0.6rem 0 1.1rem', fontSize: '0.85rem', lineHeight: 1.7, color: 'var(--muted)' }}>{service.description}</p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--warm)' }}>{formatUGX(service.price)}</span>
-                    <button type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms' }}>
+                    <Link to="/book" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'rgba(245,240,232,0.7)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 180ms', textDecoration: 'none' }}>
                       Book service <ArrowRight size={14} />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </article>

@@ -78,6 +78,7 @@ function AdminDashboard() {
   const [editingInventoryId, setEditingInventoryId] = useState(null)
   const [staffMessage, setStaffMessage] = useState('')
   const [formError, setFormError] = useState('')
+  const [settingsMessage, setSettingsMessage] = useState('')
   const [settings, setSettings] = useState({
     first_name: currentUser?.first_name ?? '',
     last_name: currentUser?.last_name ?? '',
@@ -199,7 +200,9 @@ function AdminDashboard() {
 
   async function saveSettings(event) {
     event.preventDefault()
-    await updateProfile(settings)
+    setSettingsMessage('')
+    const result = await updateProfile(settings)
+    setSettingsMessage(result.ok ? 'Profile updated successfully.' : (result.message || 'Unable to save profile.'))
   }
 
   return (
@@ -489,6 +492,7 @@ function AdminDashboard() {
                   </label>
                 ))}
                 <button type="submit" className="button-primary md:w-fit">Save settings</button>
+                {settingsMessage && <p className="md:col-span-2 text-sm text-white/65">{settingsMessage}</p>}
               </form>
             </div>
           )}

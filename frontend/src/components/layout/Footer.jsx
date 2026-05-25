@@ -1,6 +1,28 @@
 import { Mail, MapPin, PawPrint, Phone, Send } from 'lucide-react'
+import { useState } from 'react'
 
 function Footer() {
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+
+  function handleSubscribe(event) {
+    event.preventDefault()
+
+    if (!email.trim()) {
+      setMessage('Enter your email first.')
+      return
+    }
+
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    if (!isValidEmail) {
+      setMessage('Enter a valid email address.')
+      return
+    }
+
+    setMessage('Thanks. Your email has been captured for future salon updates.')
+    setEmail('')
+  }
+
   return (
     <footer id="contact" style={{ borderTop: '1px solid var(--border)', background: 'var(--panel)' }}>
       {/* wavy top accent */}
@@ -26,15 +48,15 @@ function Footer() {
           <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85, color: 'rgba(245,240,232,0.55)', maxWidth: '22rem' }}>
             A web-based grooming appointment scheduler and inventory manager designed for fast-moving salons that still want every pet visit to feel warm and personal.
           </p>
-          {/* newsletter */}
-          <div className="glass-panel" style={{ padding: '1rem 1.1rem' }}>
+          <form className="glass-panel" style={{ padding: '1rem 1.1rem' }} onSubmit={handleSubscribe}>
             <div style={{ fontSize: '0.85rem', fontWeight: 500, color: '#fff', marginBottom: '0.6rem' }}>Stay in the loop</div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input type="email" placeholder="Pet parent email"
+              <input type="email" placeholder="Pet parent email" value={email} onChange={(event) => setEmail(event.target.value)}
                 style={{ flex: 1, borderRadius: '999px', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.06)', padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#fff', outline: 'none' }} />
-              <button type="button" className="button-primary" style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>Subscribe</button>
+              <button type="submit" className="button-primary" style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>Subscribe</button>
             </div>
-          </div>
+            {message && <p style={{ margin: '0.75rem 0 0', fontSize: '0.78rem', color: 'rgba(245,240,232,0.7)' }}>{message}</p>}
+          </form>
         </div>
 
         {/* explore */}

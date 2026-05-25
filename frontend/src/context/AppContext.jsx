@@ -1,20 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import api, { storeTokens, clearTokens, getAccessToken } from '../utils/api.js'
+import { createContext, useContext, useEffect, useState } from 'react'
+import api, { storeTokens, clearTokens } from '../utils/api.js'
 
 const AppContext = createContext(null)
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function uid(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
 
 export function AppProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -238,9 +226,9 @@ export function AppProvider({ children }) {
 
   async function updateProfile(updates) {
     try {
-      const updated = await api.patch(`/users/${currentUser.id}/`, updates)
+      const updated = await api.patch('/users/me/', updates)
       setCurrentUser(updated)
-      return { ok: true }
+      return { ok: true, user: updated }
     } catch (err) {
       return { ok: false, message: err.message }
     }
