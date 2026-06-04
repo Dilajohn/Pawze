@@ -4,6 +4,7 @@ Django settings for the Pawze backend.
 
 import os
 import sys
+import dj_database_url
 from datetime import timedelta
 from pathlib import Path
 
@@ -18,8 +19,16 @@ SECRET_KEY = os.environ.get(
     "django-insecure--y475*gzit$pe01r7a0t^1xv7em8+-$98_zco&&!677=-dcs9g",
 )
 
-DEBUG = os.environ.get("DEBUG", "True") == "True"
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+DEBUG = os.environ.get("DEBUG", "False") == "True"
+
+ALLOWED_HOSTS = os.environ.get(
+    "ALLOWED_HOSTS", "localhost,127.0.0.1"
+).split(",")
+
+# Trust Render's proxy headers
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")
+]
 
 AUTH_USER_MODEL = "api.User"
 
@@ -39,6 +48,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",   # serves static files in production
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -67,30 +77,14 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-_pg_name = os.environ.get("POSTGRES_DB")
-_pg_user = os.environ.get("POSTGRES_USER")
-_pg_pass = os.environ.get("POSTGRES_PASSWORD")
-_pg_host = os.environ.get("POSTGRES_HOST", "localhost")
-_pg_port = os.environ.get("POSTGRES_PORT", "5432")
-
-if _pg_name and _pg_user and _pg_pass:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": _pg_name,
-            "USER": _pg_user,
-            "PASSWORD": _pg_pass,
-            "HOST": _pg_host,
-            "PORT": _pg_port,
-        }
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+# Database - uses DATABASE_URL env var (Neon/PostgreSQL in production, SQLite locally)
+DATABASES = {
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        ssl_require=os.environ.get("DATABASE_URL", "").startswith("postgres"),
+    )
+}
 
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
@@ -142,5 +136,10 @@ TIME_ZONE = "Africa/Kampala"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+# Static files
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [PROJECT_ROOT / "frontend" / "static"]
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
