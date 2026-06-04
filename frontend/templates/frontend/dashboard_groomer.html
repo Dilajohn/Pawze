@@ -1,0 +1,234 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+
+{% block title %}Groomer Dashboard | Pawze{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell">
+  <div class="dashboard-top">
+    <div>
+      <p class="eyebrow">Groomer Staff Portal</p>
+      <h1>Groomer Dashboard</h1>
+      <p>Manage your assigned pet schedules and salon supplies.</p>
+    </div>
+  </div>
+
+  <div class="metric-grid">
+    <article class="metric-card">
+      <span>Assigned Visits Today</span>
+      <strong>{{ appointment_count }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Low Stock Materials</span>
+      <strong>{{ low_stock_count }}</strong>
+    </article>
+  </div>
+
+  <!-- Dashboard Navigation Tabs -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('appointments-tab')">Assigned Appointments ({{ appointment_count }})</button>
+    <button class="tab-btn" onclick="switchTab('inventory-tab')">Supplies & Stock Check</button>
+    <button class="tab-btn" onclick="switchTab('usage-logs-tab')">Recent Usage Logs</button>
+  </div>
+
+  <!-- Appointments Tab -->
+  <div id="appointments-tab" class="tab-content">
+    <div class="dashboard-panel">
+      <h2>Assigned Grooming Schedule</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pet Details</th>
+              <th>Service</th>
+              <th>Customer</th>
+              <th>Date & Time</th>
+              <th>Status</th>
+              <th>Update Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for appt in appointments %}
+              <tr>
+                <td>
+                  <strong>{{ appt.pet_name }}</strong><br>
+                  <small class="text-muted">
+                    Breed: {{ appt.pet.breed|default:"—" }} | 
+                    Age: {{ appt.pet.age|default:"—" }} | 
+                    Weight: {{ appt.pet.weight|default:"—" }}
+                  </small>
+                  {% if appt.pet.notes or appt.notes %}
+                    <div class="pet-notes-box">
+                      <strong>Notes:</strong> {{ appt.pet.notes|default:appt.notes }}
+                    </div>
+                  {% endif %}
+                </td>
+                <td>{{ appt.service.name|default:"Custom Service" }}</td>
+                <td>{{ appt.customer_name }}</td>
+                <td>{{ appt.date }} at {{ appt.time|time:"H:i" }}</td>
+                <td>
+                  <span class="status-chip status-{{ appt.status }}">
+                    {{ appt.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <form method="post" action="{% url 'frontend:update-appointment-status' appt.id %}" class="status-form">
+                    {% csrf_token %}
+                    <select name="status" onchange="this.form.submit()">
+                      {% for value, label in appt.STATUS_CHOICES %}
+                        <option value="{{ value }}" {% if appt.status == value %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6">No appointments assigned to you today. Enjoy your day!</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inventory Tab -->
+  <div id="inventory-tab" class="tab-content hidden">
+    <div class="dashboard-grid">
+      <!-- Stock List -->
+      <section class="dashboard-panel">
+        <h2>Salon Inventory Stock</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item Name</th>
+                <th>Category</th>
+                <th>Current Stock</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in inventory %}
+                <tr>
+                  <td><strong>{{ item.name }}</strong></td>
+                  <td>{{ item.category }}</td>
+                  <td>{{ item.quantity }} {{ item.unit }}</td>
+                  <td>
+                    {% if item.is_low_stock %}
+                      <span class="stock-badge low-stock">Low Stock</span>
+                    {% else %}
+                      <span class="stock-badge in-stock">Good</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4">No inventory registered. Contact admin.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Supplies Actions Sidebar -->
+      <aside class="sidebar-panels">
+        <!-- Log Material Usage -->
+        <div class="dashboard-panel">
+          <h2>Log Material Usage</h2>
+          <form class="panel-form" method="post" action="{% url 'frontend:log-inventory-usage' %}">
+            {% csrf_token %}
+            <label class="field">
+              <span>Select Supply Item</span>
+              <select name="item_id" required>
+                {% for item in inventory %}
+                  <option value="{{ item.id }}">{{ item.name }} ({{ item.quantity }} {{ item.unit }} remaining)</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Quantity Used *</span>
+              <input type="number" name="quantity_used" min="1" required placeholder="e.g. 2">
+            </label>
+            <label class="field">
+              <span>Purpose / Notes</span>
+              <input name="notes" placeholder="e.g. Used for Golden Retriever Bath">
+            </label>
+            <button class="button-primary" type="submit">Log Usage</button>
+          </form>
+        </div>
+
+        <!-- Submit Restock Request -->
+        <div class="dashboard-panel" style="margin-top: 1.5rem;">
+          <h2>Request Stock Restock</h2>
+          <form class="panel-form" method="post" action="{% url 'frontend:request-restock' %}">
+            {% csrf_token %}
+            <label class="field">
+              <span>Select Supply Item</span>
+              <select name="item_id" required>
+                {% for item in inventory %}
+                  <option value="{{ item.id }}">{{ item.name }} ({{ item.unit }})</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Requested Quantity *</span>
+              <input type="number" name="quantity" min="1" required placeholder="e.g. 10">
+            </label>
+            <button class="button-secondary" type="submit">Submit Restock Request</button>
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Usage Logs Tab -->
+  <div id="usage-logs-tab" class="tab-content hidden">
+    <div class="dashboard-panel">
+      <h2>Your Material Usage Logs</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Material</th>
+              <th>Quantity Used</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in usage_logs %}
+              <tr>
+                <td>{{ log.timestamp|date:"M d, H:i" }}</td>
+                <td><strong>{{ log.item.name }}</strong></td>
+                <td>{{ log.quantity_used }} {{ log.item.unit }}</td>
+                <td>{{ log.notes|default:"—" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4">No supply usage logged by you recently.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Tab Switching Script -->
+<script>
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(function(el) {
+      el.classList.add('hidden');
+    });
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    document.getElementById(tabId).classList.remove('hidden');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+{% endblock %}

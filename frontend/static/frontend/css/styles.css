@@ -871,8 +871,353 @@ td {
     flex-direction: column;
   }
 
-  .footer-subscribe input,
   .footer-subscribe button {
     min-height: 2.7rem;
   }
 }
+
+/* Dashboard Tabs styling */
+.tabs-nav {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+  padding-bottom: 0.5rem;
+  overflow-x: auto;
+}
+.tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.tab-btn:hover {
+  background: var(--surface-soft);
+  color: var(--text-strong);
+}
+.tab-btn.active {
+  background: linear-gradient(135deg, var(--sage), var(--warm));
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* General Layout Utilities */
+.hidden {
+  display: none !important;
+}
+.max-w-md {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+.align-start {
+  align-self: start;
+}
+.btn-group {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.btn-row-flex {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Badge & Status Styles */
+.badge {
+  display: inline-flex;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-warning {
+  background: rgba(232, 184, 122, 0.2);
+  color: var(--warm);
+}
+.badge-success {
+  background: rgba(122, 170, 106, 0.2);
+  color: var(--sage);
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  text-transform: capitalize;
+}
+.status-pending { background: rgba(232, 184, 122, 0.15); color: var(--warm); border-color: rgba(232, 184, 122, 0.3); }
+.status-confirmed { background: rgba(122, 170, 106, 0.15); color: var(--sage); border-color: rgba(122, 170, 106, 0.3); }
+.status-in-progress { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+.status-completed { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+.status-cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+
+/* Stock Badges */
+.stock-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.stock-badge.low-stock {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+.stock-badge.in-stock {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+.stock-danger {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.restock-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.restock-badge.status-pending { background: rgba(232, 184, 122, 0.2); color: var(--warm); }
+.restock-badge.status-approved { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.restock-badge.status-completed { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+
+/* Pets Grid Styling */
+.pets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+.pet-card {
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, var(--card-strong), var(--card-soft));
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.pet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pet-header h3 {
+  margin: 0;
+  font-family: inherit;
+  color: var(--text-strong);
+  font-size: 1.2rem;
+}
+.breed-badge {
+  background: var(--surface-soft);
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.pet-details p {
+  margin: 0.35rem 0;
+  font-size: 0.9rem;
+}
+.pet-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Buttons sizing */
+.btn-sm {
+  padding: 0.45rem 0.85rem !important;
+  font-size: 0.8rem !important;
+  min-height: auto !important;
+}
+.button-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.button-danger:hover {
+  background: rgba(239, 68, 68, 0.35);
+}
+.button-action {
+  background: var(--surface-soft);
+  color: var(--text-strong);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.button-action:hover {
+  border-color: var(--border-strong);
+  background: var(--card-strong);
+}
+
+/* Feedback & Ratings styling */
+.feedback-inline-form {
+  background: var(--panel);
+  border: 1px dashed var(--border-strong);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+.rating-stars-input {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.rating-stars-input select {
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  color: var(--text-strong);
+}
+.rating-display {
+  font-weight: 700;
+  color: var(--warm);
+}
+
+/* Notifications Hub */
+.notification-list {
+  display: grid;
+  gap: 1rem;
+}
+.notification-item {
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: var(--card);
+  padding: 1.25rem;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.notification-item.unread {
+  border-left: 4px solid var(--warm);
+  background: rgba(232, 184, 122, 0.02);
+}
+.notification-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.notif-type {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+.notif-type.notif-pickup { color: var(--sage); }
+.notif-type.notif-payment { color: #34d399; }
+.notif-type.notif-advice { color: var(--warm); }
+.notif-type.notif-status { color: #60a5fa; }
+.notif-date {
+  font-size: 0.8rem;
+  color: var(--muted-soft);
+}
+.notification-item h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: var(--text-strong);
+}
+.notification-item p {
+  margin: 0 0 1rem 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Audit logs Pre and JSON view */
+.json-code {
+  font-family: monospace;
+  font-size: 0.8rem;
+  background: var(--bg-app);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+.action-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.action-badge.action-login { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.action-badge.action-logout { background: rgba(107, 114, 128, 0.15); color: var(--muted); }
+.action-badge.action-change_password { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.action-badge.action-reset_password { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.action-badge.action-create_staff { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.action-badge.action-log_usage { background: rgba(232, 184, 122, 0.15); color: var(--warm); }
+.action-badge.action-request_restock { background: rgba(232, 184, 122, 0.15); color: var(--warm); }
+.action-badge.action-approve_restock { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.action-badge.action-complete_restock { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+
+/* Status role badge */
+.role-admin {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.role-groomer {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+/* Groomer appointment helper notes box */
+.pet-notes-box {
+  background: rgba(232, 184, 122, 0.05);
+  border-left: 3px solid var(--warm);
+  padding: 0.5rem;
+  border-radius: 0.35rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Status selection styling */
+.status-form select {
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.5rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.status-form select:focus {
+  outline: 0;
+  border-color: var(--warm);
+}
+
+.dashboard-panel-stack {
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-panels {
+  display: flex;
+  flex-direction: column;
+}
+

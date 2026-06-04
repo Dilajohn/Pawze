@@ -201,3 +201,14 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f'[{self.timestamp}] {self.action} on {self.model_name} #{self.object_id} by {self.user}'
+
+    @classmethod
+    def log_action(cls, user, action, model_name, object_id, changes=None):
+        return cls.objects.create(
+            user=user if (user and user.is_authenticated) else None,
+            action=action,
+            model_name=model_name,
+            object_id=str(object_id) if object_id is not None else "",
+            changes=changes or {}
+        )
+
