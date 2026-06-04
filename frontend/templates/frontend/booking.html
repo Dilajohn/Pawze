@@ -1,0 +1,74 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}Book Appointment | Pawze{% endblock %}
+
+{% block content %}
+<section class="form-shell">
+  <div class="form-intro">
+    <p class="eyebrow">Book online</p>
+    <h1>Book a grooming visit without opening a dashboard.</h1>
+    <p>No account needed for a one-off visit. Returning customers can sign in to keep appointment history connected.</p>
+  </div>
+
+  <form class="panel-form" method="post">
+    {% csrf_token %}
+    <div class="form-grid">
+      <label class="field span-2">
+        <span>Owner name *</span>
+        <input name="owner_name" required placeholder="Amara Nakato" value="{{ request.user.get_full_name|default:'' }}">
+      </label>
+      <label class="field">
+        <span>Email *</span>
+        <input name="email" type="email" required placeholder="amara@example.com" value="{{ request.user.email|default:'' }}">
+      </label>
+      <label class="field">
+        <span>Phone *</span>
+        <input name="phone" type="tel" required placeholder="+256712345678" value="{{ request.user.phone|default:'' }}">
+      </label>
+      <label class="field">
+        <span>Pet name *</span>
+        <input name="pet_name" required placeholder="Max">
+      </label>
+      <label class="field">
+        <span>Breed *</span>
+        <input name="breed" required placeholder="Labrador">
+      </label>
+      <label class="field">
+        <span>Age</span>
+        <input name="age" placeholder="2 years">
+      </label>
+      <label class="field">
+        <span>Weight</span>
+        <input name="weight" placeholder="25 kg">
+      </label>
+      <label class="field span-2">
+        <span>Service *</span>
+        <select name="service" required>
+          {% for service in services %}
+            <option value="{{ service.id }}" {% if selected_service == service.name %}selected{% endif %}>
+              {{ service.name }} - {{ service.duration }} min - {{ service.price_label }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field">
+        <span>Date *</span>
+        <input name="date" type="date" min="{{ today }}" required>
+      </label>
+      <label class="field">
+        <span>Time *</span>
+        <input name="time" type="time" min="09:00" max="18:00" required>
+      </label>
+      <label class="field span-2">
+        <span>Special notes</span>
+        <textarea name="notes" rows="4" placeholder="Allergies, temperament, pickup preferences"></textarea>
+      </label>
+    </div>
+    <div class="button-row">
+      <button class="button-primary" type="submit">Submit appointment</button>
+      <a class="button-secondary" href="{% url 'frontend:landing' %}">Back home</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+

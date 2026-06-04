@@ -1,0 +1,52 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}Register | Pawze{% endblock %}
+
+{% block content %}
+<section class="form-shell narrow">
+  <div class="form-intro">
+    <p class="eyebrow">Customer account</p>
+    <h1>Create your Pawze account.</h1>
+    <p>Manage pets, track bookings, and keep grooming notes in one place.</p>
+  </div>
+  <form class="panel-form" method="post">
+    {% csrf_token %}
+    <div class="form-grid">
+      <label class="field">
+        <span>First name</span>
+        <input name="first_name" autocomplete="given-name">
+      </label>
+      <label class="field">
+        <span>Last name</span>
+        <input name="last_name" autocomplete="family-name">
+      </label>
+      <label class="field">
+        <span>Username *</span>
+        <input name="username" autocomplete="username" required>
+      </label>
+      <label class="field">
+        <span>Email *</span>
+        <input name="email" type="email" autocomplete="email" required>
+      </label>
+      <label class="field">
+        <span>Phone</span>
+        <input name="phone" type="tel" autocomplete="tel">
+      </label>
+      <label class="field">
+        <span>Location</span>
+        <input name="location" autocomplete="address-level2">
+      </label>
+      <label class="field">
+        <span>Password *</span>
+        <input name="password" type="password" autocomplete="new-password" required>
+      </label>
+      <label class="field">
+        <span>Confirm password *</span>
+        <input name="password_confirm" type="password" autocomplete="new-password" required>
+      </label>
+    </div>
+    <button class="button-primary" type="submit">Create account</button>
+  </form>
+</section>
+{% endblock %}
+

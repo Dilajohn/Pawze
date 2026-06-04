@@ -1,0 +1,76 @@
+{% extends "frontend/base.html" %}
+
+{% block title %}{{ title }} | Pawze{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell">
+  <div class="dashboard-top">
+    <div>
+      <p class="eyebrow">{{ request.user.role }}</p>
+      <h1>{{ title }}</h1>
+      <p>{{ subtitle }}</p>
+    </div>
+    <a class="button-primary" href="{% url 'frontend:book' %}">New appointment</a>
+  </div>
+
+  <div class="metric-grid">
+    <article class="metric-card">
+      <span>Appointments</span>
+      <strong>{{ appointment_count }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Pets</span>
+      <strong>{{ pet_count }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Low stock</span>
+      <strong>{{ low_stock_count }}</strong>
+    </article>
+  </div>
+
+  <div class="dashboard-grid">
+    <section class="dashboard-panel">
+      <h2>Upcoming appointments</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pet</th>
+              <th>Service</th>
+              <th>Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for appointment in appointments %}
+              <tr>
+                <td>{{ appointment.pet_name }}</td>
+                <td>{{ appointment.service.name|default:"Unassigned" }}</td>
+                <td>{{ appointment.date }} {{ appointment.time|time:"H:i" }}</td>
+                <td><span class="status-chip">{{ appointment.get_status_display }}</span></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4">No upcoming appointments yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside class="dashboard-panel">
+      <h2>Inventory snapshot</h2>
+      <div class="inventory-list">
+        {% for item in inventory %}
+          <div>
+            <strong>{{ item.name }}</strong>
+            <span>{{ item.quantity }} {{ item.unit }}</span>
+          </div>
+        {% empty %}
+          <p>No inventory items recorded yet.</p>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+

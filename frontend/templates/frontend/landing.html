@@ -1,0 +1,108 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+
+{% block title %}Pawze | Pet Grooming Platform{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+  <div class="hero-copy">
+    <p class="eyebrow">Grooming workflows with heart</p>
+    <h1>Pawze <span>Happy tail-wags,</span> every visit.</h1>
+    <p class="hero-text">A polished platform for appointment scheduling, pet records, and inventory, built for modern grooming salons.</p>
+    <div class="button-row">
+      <a class="button-primary" href="{% url 'frontend:book' %}">Book an appointment</a>
+      <a class="button-secondary" href="{% url 'frontend:register' %}">Create account</a>
+    </div>
+    <div class="highlight-grid">
+      {% for item in highlights %}
+        <article class="glass-panel">
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.body }}</p>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="hero-media">
+    <img src="{% static 'frontend/images/cutest-puppy.jpg' %}" alt="Happy groomed puppy">
+    <div class="float-card top-card">
+      <span>Today's flow</span>
+      <strong>18</strong>
+      <small>visits / 4 groomers</small>
+    </div>
+    <div class="float-card bottom-card">
+      <span>Pet profile</span>
+      <strong>Sunny</strong>
+      <small>Sensitive skin flagged / preferred groomer saved</small>
+    </div>
+  </div>
+</section>
+
+<section class="stat-band">
+  {% for item in stats %}
+    <article>
+      <strong>{{ item.value }}</strong>
+      <span>{{ item.label }}</span>
+    </article>
+  {% endfor %}
+</section>
+
+<section id="services" class="page-section">
+  <div class="section-head">
+    <p class="eyebrow">Services</p>
+    <h2>Curated grooming packages for every companion.</h2>
+    <p>Transparent pricing, clear durations, and a salon-friendly layout that feels premium without sacrificing usability.</p>
+  </div>
+  <div class="service-grid">
+    {% for service in services %}
+      <article class="service-card">
+        <img src="{% static 'frontend/images/' %}{{ service.image }}" alt="{{ service.name }}">
+        <div>
+          <h3>{{ service.name }}</h3>
+          <p>{{ service.description }}</p>
+          <footer>
+            <strong>{{ service.price_label }}</strong>
+            <a href="{% url 'frontend:book' %}?service={{ service.name|urlencode }}">Book service</a>
+          </footer>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="split-section">
+  <img src="{% static 'frontend/images/german-shepherd.jpg' %}" alt="Grooming session">
+  <div>
+    <p class="eyebrow">How it works</p>
+    <h2>From booking to bow, four smooth steps.</h2>
+    <div class="step-list">
+      {% for step in steps %}
+        <article class="step-card">
+          <strong>{{ step.step }}</strong>
+          <div>
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.description }}</p>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="page-section">
+  <div class="section-head compact">
+    <p class="eyebrow">Testimonials</p>
+    <h2>Thoughtful for customers, controlled for salon teams.</h2>
+  </div>
+  <div class="testimonial-grid">
+    {% for item in testimonials %}
+      <article class="testimonial-card">
+        <img src="{% static 'frontend/images/' %}{{ item.image }}" alt="{{ item.name }}">
+        <h3>{{ item.name }}</h3>
+        <span>{{ item.role }}</span>
+        <p>"{{ item.quote }}"</p>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+

@@ -1,0 +1,35 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+
+{% block title %}Login | Pawze{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <form class="auth-card" method="post">
+    {% csrf_token %}
+    <div>
+      <p class="eyebrow">Welcome back</p>
+      <h1>Log in to Pawze</h1>
+      <p>Staff members sign in after the admin creates their account. Customers log in to manage bookings.</p>
+    </div>
+    <label class="field">
+      <span>Username or email</span>
+      <input name="username" autocomplete="username" required placeholder="your_username">
+    </label>
+    <label class="field">
+      <span>Password</span>
+      <input name="password" type="password" autocomplete="current-password" required placeholder="Enter your password">
+    </label>
+    <button class="button-primary" type="submit">Sign in</button>
+    <p class="auth-note">New customer? <a href="{% url 'frontend:register' %}">Create an account</a></p>
+  </form>
+  <aside class="auth-image">
+    <img src="{% static 'frontend/images/cutest-puppy.jpg' %}" alt="Dog grooming">
+    <div>
+      <p class="eyebrow">Pawze platform</p>
+      <h2>Appointments, pets, and inventory in one clean workflow.</h2>
+    </div>
+  </aside>
+</section>
+{% endblock %}
+
