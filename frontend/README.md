@@ -5,7 +5,7 @@ This directory is a Django app inside the Pawze project. It owns the server-rend
 ## Responsibilities
 
 - public landing page
-- public appointment booking
+- authenticated appointment booking
 - customer registration and login pages
 - role-based dashboard pages
 - static styles, images, favicon, and small browser helpers

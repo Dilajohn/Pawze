@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Count, F
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
@@ -70,6 +71,7 @@ def landing(request):
 
 
 @require_http_methods(["GET", "POST"])
+@login_required(login_url="frontend:login")
 def book(request):
     services = _services_for_display()
     selected_service = request.GET.get("service", "")
@@ -139,6 +141,8 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect(_dashboard_path_for(request.user))
 
+    next_url = request.GET.get("next") or request.POST.get("next") or ""
+
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
@@ -150,11 +154,17 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(next_url)
             return redirect(_dashboard_path_for(user))
 
         messages.error(request, "Invalid username or password.")
 
-    return render(request, "frontend/auth/login.html")
+    return render(request, "frontend/auth/login.html", {"next_url": next_url})
 
 
 def logout_view(request):
@@ -166,6 +176,8 @@ def logout_view(request):
 def register(request):
     if request.user.is_authenticated:
         return redirect(_dashboard_path_for(request.user))
+
+    next_url = request.GET.get("next") or request.POST.get("next") or ""
 
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
@@ -196,9 +208,15 @@ def register(request):
                     role="customer",
                 )
                 login(request, user)
+                if next_url and url_has_allowed_host_and_scheme(
+                    next_url,
+                    allowed_hosts={request.get_host()},
+                    require_https=request.is_secure(),
+                ):
+                    return redirect(next_url)
                 return redirect("frontend:customer-dashboard")
 
-    return render(request, "frontend/auth/register.html")
+    return render(request, "frontend/auth/register.html", {"next_url": next_url})
 
 
 @login_required(login_url="frontend:login")

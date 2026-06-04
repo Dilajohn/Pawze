@@ -4,7 +4,7 @@ Pawze is a Django pet grooming management platform for salons that need to handl
 
 It combines:
 
-- a Django-rendered public booking experience for pet owners
+- a Django-rendered authenticated booking experience for pet owners
 - role-based Django pages for customers, groomers, and admins
 - a Django REST Framework API for business logic and external integrations
 - SQLite for local development
@@ -167,4 +167,3 @@ python manage.py check
 python manage.py migrate
 python manage.py test
 ```
-

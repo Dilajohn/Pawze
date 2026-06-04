@@ -7,6 +7,7 @@
 <section class="auth-shell">
   <form class="auth-card" method="post">
     {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url }}">
     <div>
       <p class="eyebrow">Welcome back</p>
       <h1>Log in to Pawze</h1>
@@ -21,7 +22,7 @@
       <input name="password" type="password" autocomplete="current-password" required placeholder="Enter your password">
     </label>
     <button class="button-primary" type="submit">Sign in</button>
-    <p class="auth-note">New customer? <a href="{% url 'frontend:register' %}">Create an account</a></p>
+    <p class="auth-note">New customer? <a href="{% url 'frontend:register' %}{% if next_url %}?next={{ next_url|urlencode }}{% endif %}">Create an account</a></p>
   </form>
   <aside class="auth-image">
     <img src="{% static 'frontend/images/cutest-puppy.jpg' %}" alt="Dog grooming">
@@ -32,4 +33,3 @@
   </aside>
 </section>
 {% endblock %}
-
