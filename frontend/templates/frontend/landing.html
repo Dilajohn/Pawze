@@ -10,8 +10,13 @@
     <h1>Pawze <span>Happy tail-wags,</span> every visit.</h1>
     <p class="hero-text">A polished platform for appointment scheduling, pet records, and inventory, built for modern grooming salons.</p>
     <div class="button-row">
-      <a class="button-primary" href="{% url 'frontend:book' %}">Book an appointment</a>
-      <a class="button-secondary" href="{% url 'frontend:register' %}">Create account</a>
+      {% if request.user.is_authenticated %}
+        <a class="button-primary" href="{% url 'frontend:book' %}">Book an appointment</a>
+        <a class="button-secondary" href="{% url 'frontend:dashboard' %}">Open dashboard</a>
+      {% else %}
+        <a class="button-primary" href="{% url 'frontend:login' %}?next={% url 'frontend:book' %}">Log in to book</a>
+        <a class="button-secondary" href="{% url 'frontend:register' %}?next={% url 'frontend:book' %}">Create account</a>
+      {% endif %}
     </div>
     <div class="highlight-grid">
       {% for item in highlights %}
@@ -61,7 +66,11 @@
           <p>{{ service.description }}</p>
           <footer>
             <strong>{{ service.price_label }}</strong>
-            <a href="{% url 'frontend:book' %}?service={{ service.name|urlencode }}">Book service</a>
+            {% if request.user.is_authenticated %}
+              <a href="{% url 'frontend:book' %}?service={{ service.name|urlencode }}">Book service</a>
+            {% else %}
+              <a href="{% url 'frontend:login' %}?next={% url 'frontend:book' %}?service={{ service.name|urlencode }}">Log in to book</a>
+            {% endif %}
           </footer>
         </div>
       </article>
@@ -106,3 +115,55 @@
 </section>
 {% endblock %}
 
+{% block footer %}
+<footer class="landing-footer">
+  <div class="landing-footer-panel">
+    <div class="footer-topline">
+      <h2>Grooming care that keeps every visit calm, clean, and connected.</h2>
+      <form class="footer-subscribe" method="get" action="{% url 'frontend:register' %}">
+        <label for="footer-email">Get in touch</label>
+        <div>
+          <input id="footer-email" name="email" type="email" placeholder="Enter your email">
+          <button type="submit">Subscribe</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="footer-columns">
+      <section>
+        <h3>Contact information</h3>
+        <a href="mailto:support@pawze.ug">support@pawze.ug</a>
+        <a href="tel:+256700123456">+256 700 123 456</a>
+      </section>
+      <section>
+        <h3>Company</h3>
+        <a href="#services">Services</a>
+        <a href="{% url 'frontend:book' %}">Booking</a>
+        <a href="{% url 'frontend:register' %}">Accounts</a>
+      </section>
+      <section>
+        <h3>Help</h3>
+        <a href="{% url 'frontend:login' %}">Login help</a>
+        <a href="{% url 'frontend:dashboard' %}">Dashboard</a>
+        <a href="mailto:support@pawze.ug">Support</a>
+      </section>
+      <section>
+        <h3>Follow us</h3>
+        <div class="social-row" aria-label="Social links">
+          <a href="#" aria-label="Facebook">f</a>
+          <a href="#" aria-label="Instagram">◎</a>
+          <a href="#" aria-label="YouTube">▶</a>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer-bottomline">
+      <span>© 2026 Pawze. All rights reserved.</span>
+      <nav aria-label="Footer legal links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms & conditions</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+{% endblock %}

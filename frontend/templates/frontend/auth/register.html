@@ -11,6 +11,7 @@
   </div>
   <form class="panel-form" method="post">
     {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url }}">
     <div class="form-grid">
       <label class="field">
         <span>First name</span>
@@ -49,4 +50,3 @@
   </form>
 </section>
 {% endblock %}
-

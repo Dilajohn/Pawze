@@ -42,22 +42,22 @@ LANDING_STATS = [
 
 TESTIMONIALS = [
     {
-        "name": "Nadia & Churro",
-        "role": "Monthly member",
-        "quote": "Pawze made booking feel effortless, and the groomer notes helped Churro stay calm every visit.",
-        "image": "cutest-puppy.jpg",
+        "name": "Atim Winnie",
+        "role": "Returning customer",
+        "quote": "Pawze made booking feel effortless, and the groomer notes helped my dog stay calm every visit.",
+        "image": "testimonial-atim-winnie.jpg",
     },
     {
-        "name": "Marco Dela Cruz",
-        "role": "Shop owner",
+        "name": "Nakato Flavia",
+        "role": "Salon owner",
         "quote": "The low-stock alerts alone save us. We stopped scrambling for shampoo on busy weekends.",
-        "image": "animal-shelter.jpg",
+        "image": "testimonial-nakato-flavia.jpg",
     },
     {
-        "name": "Leila Santos",
+        "name": "Otim Joshua",
         "role": "Lead groomer",
         "quote": "I can see my day, update statuses fast, and focus on the pets instead of paper lists.",
-        "image": "image-7.jpg",
+        "image": "testimonial-otim-joshua.jpg",
     },
 ]
 
@@ -98,4 +98,3 @@ DASHBOARD_HIGHLIGHTS = [
         "body": "Keep preferences, coat notes, and prior visits handy for tailored grooming experiences.",
     },
 ]
-
