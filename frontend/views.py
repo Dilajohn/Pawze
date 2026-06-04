@@ -1,16 +1,17 @@
 from django.contrib import messages
-from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db.models import Count, F
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from api.models import Appointment, InventoryItem, Pet, Service
+from api.models import Appointment, InventoryItem, Pet, Service, AuditLog, Notification, RestockRequest, InventoryUsageLog
+
 
 from .data import DASHBOARD_HIGHLIGHTS, HOW_IT_WORKS, LANDING_STATS, SERVICES, TESTIMONIALS
 
@@ -139,6 +140,8 @@ def book(request):
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
+        if request.user.must_change_password:
+            return redirect("frontend:change-password")
         return redirect(_dashboard_path_for(request.user))
 
     next_url = request.GET.get("next") or request.POST.get("next") or ""
@@ -154,6 +157,10 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
+            AuditLog.log_action(user, "login", "User", user.id)
+            if user.must_change_password:
+                messages.warning(request, "You must change your temporary password before proceeding.")
+                return redirect("frontend:change-password")
             if next_url and url_has_allowed_host_and_scheme(
                 next_url,
                 allowed_hosts={request.get_host()},
@@ -168,8 +175,11 @@ def login_view(request):
 
 
 def logout_view(request):
+    if request.user.is_authenticated:
+        AuditLog.log_action(request.user, "logout", "User", request.user.id)
     logout(request)
     return redirect("frontend:landing")
+
 
 
 @require_http_methods(["GET", "POST"])
@@ -221,62 +231,502 @@ def register(request):
 
 @login_required(login_url="frontend:login")
 def dashboard_redirect(request):
+    if request.user.must_change_password:
+        return redirect("frontend:change-password")
     return redirect(_dashboard_path_for(request.user))
 
 
-def _dashboard_context(request, title, subtitle):
-    user = request.user
-    appointments = Appointment.objects.select_related("service", "groomer", "customer", "pet")
-    pets = Pet.objects.select_related("owner")
-    inventory = InventoryItem.objects.all()
+@login_required(login_url="frontend:login")
+@require_http_methods(["GET", "POST"])
+def change_password(request):
+    if request.method == "POST":
+        password = request.POST.get("password")
+        password_confirm = request.POST.get("password_confirm")
 
-    if user.role == "customer":
-        appointments = appointments.filter(customer=user)
-        pets = pets.filter(owner=user)
-    elif user.role == "groomer":
-        appointments = appointments.filter(groomer=user)
+        if not password or not password_confirm:
+            messages.error(request, "Please enter all password fields.")
+        elif password != password_confirm:
+            messages.error(request, "Passwords do not match.")
+        else:
+            try:
+                validate_password(password, request.user)
+            except ValidationError as error:
+                messages.error(request, " ".join(error.messages))
+            else:
+                user = request.user
+                user.set_password(password)
+                user.must_change_password = False
+                user.save()
+                update_session_auth_hash(request, user)
+                AuditLog.log_action(user, "change_password", "User", user.id)
+                messages.success(request, "Password updated successfully.")
+                return redirect(_dashboard_path_for(user))
 
-    upcoming = appointments.exclude(status__in=["completed", "cancelled"]).order_by("date", "time")[:8]
-    return {
-        "title": title,
-        "subtitle": subtitle,
-        "appointments": upcoming,
-        "appointment_count": appointments.count(),
-        "pet_count": pets.count(),
-        "low_stock_count": inventory.filter(quantity__lte=F("threshold")).count(),
-        "status_counts": appointments.values("status").annotate(total=Count("id")).order_by("status"),
-        "inventory": inventory.order_by("name")[:8],
-    }
+    return render(request, "frontend/auth/change_password.html")
 
 
 @login_required(login_url="frontend:login")
 def admin_dashboard(request):
     if request.user.role != "admin":
         return redirect(_dashboard_path_for(request.user))
-    return render(
-        request,
-        "frontend/dashboard.html",
-        _dashboard_context(request, "Admin dashboard", "Appointments, staff workflows, and inventory in one view."),
-    )
+    if request.user.must_change_password:
+        return redirect("frontend:change-password")
+
+    appointments = Appointment.objects.select_related("service", "groomer", "customer", "pet").order_by("-date", "-time")
+    inventory = InventoryItem.objects.all().order_by("name")
+    restock_requests = RestockRequest.objects.select_related("item").all().order_by("-created_at")
+    staff_members = get_user_model().objects.filter(role__in=["admin", "groomer"]).order_by("username")
+    audit_logs = AuditLog.objects.select_related("user").all().order_by("-timestamp")[:150]
+
+    # Metrics
+    appointment_count = appointments.count()
+    pet_count = Pet.objects.count()
+    low_stock_count = inventory.filter(quantity__lte=F("threshold")).count()
+
+    context = {
+        "title": "Admin Dashboard",
+        "subtitle": "Appointments, staff workflows, and inventory in one view.",
+        "appointments": appointments[:50],
+        "inventory": inventory,
+        "restock_requests": restock_requests,
+        "staff_members": staff_members,
+        "audit_logs": audit_logs,
+        "appointment_count": appointment_count,
+        "pet_count": pet_count,
+        "low_stock_count": low_stock_count,
+    }
+    return render(request, "frontend/dashboard_admin.html", context)
 
 
 @login_required(login_url="frontend:login")
 def groomer_dashboard(request):
     if request.user.role != "groomer":
         return redirect(_dashboard_path_for(request.user))
-    return render(
-        request,
-        "frontend/dashboard.html",
-        _dashboard_context(request, "Groomer dashboard", "Assigned visits and pet notes for the day ahead."),
-    )
+    if request.user.must_change_password:
+        return redirect("frontend:change-password")
+
+    appointments = Appointment.objects.filter(groomer=request.user).select_related("service", "customer", "pet").order_by("date", "time")
+    inventory = InventoryItem.objects.all().order_by("name")
+    usage_logs = InventoryUsageLog.objects.filter(groomer=request.user).select_related("item").order_by("-timestamp")[:20]
+
+    # Metrics
+    appointment_count = appointments.count()
+    low_stock_count = inventory.filter(quantity__lte=F("threshold")).count()
+
+    context = {
+        "title": "Groomer Dashboard",
+        "subtitle": "Assigned visits and pet notes for the day ahead.",
+        "appointments": appointments,
+        "inventory": inventory,
+        "usage_logs": usage_logs,
+        "appointment_count": appointment_count,
+        "low_stock_count": low_stock_count,
+    }
+    return render(request, "frontend/dashboard_groomer.html", context)
 
 
 @login_required(login_url="frontend:login")
 def customer_dashboard(request):
     if request.user.role != "customer":
         return redirect(_dashboard_path_for(request.user))
-    return render(
-        request,
-        "frontend/dashboard.html",
-        _dashboard_context(request, "Customer dashboard", "Your pets, bookings, and appointment history."),
+    if request.user.must_change_password:
+        return redirect("frontend:change-password")
+
+    appointments = Appointment.objects.filter(customer=request.user).select_related("service", "groomer", "pet").order_by("-date", "-time")
+    pets = Pet.objects.filter(owner=request.user).order_by("name")
+    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
+
+    # Metrics
+    appointment_count = appointments.count()
+    pet_count = pets.count()
+    unread_notifications_count = notifications.filter(is_read=False).count()
+
+    context = {
+        "title": "Customer Dashboard",
+        "subtitle": "Your pets, bookings, and appointment history.",
+        "appointments": appointments,
+        "pets": pets,
+        "notifications": notifications[:30],
+        "appointment_count": appointment_count,
+        "pet_count": pet_count,
+        "unread_notifications_count": unread_notifications_count,
+    }
+    return render(request, "frontend/dashboard_customer.html", context)
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def mark_notification_read(request, pk):
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
+    notification.is_read = True
+    notification.save(update_fields=["is_read"])
+    return redirect("frontend:customer-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def manage_pet(request):
+    if request.user.role != "customer":
+        return redirect("frontend:dashboard")
+
+    pet_id = request.POST.get("pet_id")
+    name = request.POST.get("name", "").strip()
+    breed = request.POST.get("breed", "").strip()
+    age = request.POST.get("age", "").strip()
+    weight = request.POST.get("weight", "").strip()
+    notes = request.POST.get("notes", "").strip()
+
+    if not name:
+        messages.error(request, "Pet name is required.")
+        return redirect("frontend:customer-dashboard")
+
+    if pet_id:
+        pet = get_object_or_404(Pet, pk=pet_id, owner=request.user)
+        pet.name = name
+        pet.breed = breed
+        pet.age = age
+        pet.weight = weight
+        pet.notes = notes
+        pet.save()
+        messages.success(request, f"Pet '{name}' updated successfully.")
+        AuditLog.log_action(request.user, "update_pet", "Pet", pet.id)
+    else:
+        pet = Pet.objects.create(
+            owner=request.user,
+            name=name,
+            breed=breed,
+            age=age,
+            weight=weight,
+            notes=notes
+        )
+        messages.success(request, f"Pet '{name}' added successfully.")
+        AuditLog.log_action(request.user, "create_pet", "Pet", pet.id)
+
+    return redirect("frontend:customer-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def delete_pet(request, pk):
+    pet = get_object_or_404(Pet, pk=pk, owner=request.user)
+    pet_name = pet.name
+    pet.delete()
+    messages.success(request, f"Pet '{pet_name}' deleted.")
+    AuditLog.log_action(request.user, "delete_pet", "Pet", pk)
+    return redirect("frontend:customer-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def manage_inventory(request):
+    if request.user.role != "admin":
+        return redirect("frontend:dashboard")
+
+    item_id = request.POST.get("item_id")
+    name = request.POST.get("name", "").strip()
+    category = request.POST.get("category", "").strip()
+    quantity_str = request.POST.get("quantity", "0").strip()
+    unit = request.POST.get("unit", "").strip()
+    threshold_str = request.POST.get("threshold", "0").strip()
+    supplier_name = request.POST.get("supplier_name", "").strip()
+    expiry_date_str = request.POST.get("expiry_date", "").strip()
+
+    if not name or not category or not unit:
+        messages.error(request, "Name, Category, and Unit are required.")
+        return redirect("frontend:admin-dashboard")
+
+    try:
+        quantity = int(quantity_str)
+        threshold = int(threshold_str)
+    except ValueError:
+        messages.error(request, "Quantity and Threshold must be integers.")
+        return redirect("frontend:admin-dashboard")
+
+    expiry_date = None
+    if expiry_date_str:
+        try:
+            expiry_date = timezone.datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Invalid expiry date format. Use YYYY-MM-DD.")
+            return redirect("frontend:admin-dashboard")
+
+    if item_id:
+        item = get_object_or_404(InventoryItem, pk=item_id)
+        old_quantity = item.quantity
+        item.name = name
+        item.category = category
+        item.quantity = quantity
+        item.unit = unit
+        item.threshold = threshold
+        item.supplier_name = supplier_name
+        item.expiry_date = expiry_date
+        item.save()
+        messages.success(request, f"Inventory item '{name}' updated.")
+        AuditLog.log_action(request.user, "update_inventory", "InventoryItem", item.id, {"old_qty": old_quantity, "new_qty": quantity})
+    else:
+        item = InventoryItem.objects.create(
+            name=name,
+            category=category,
+            quantity=quantity,
+            unit=unit,
+            threshold=threshold,
+            supplier_name=supplier_name,
+            expiry_date=expiry_date
+        )
+        messages.success(request, f"Inventory item '{name}' created.")
+        AuditLog.log_action(request.user, "create_inventory", "InventoryItem", item.id)
+
+    return redirect("frontend:admin-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def delete_inventory(request, pk):
+    if request.user.role != "admin":
+        return redirect("frontend:dashboard")
+    item = get_object_or_404(InventoryItem, pk=pk)
+    name = item.name
+    item.delete()
+    messages.success(request, f"Inventory item '{name}' deleted.")
+    AuditLog.log_action(request.user, "delete_inventory", "InventoryItem", pk)
+    return redirect("frontend:admin-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def log_inventory_usage(request):
+    if request.user.role != "groomer":
+        return redirect("frontend:dashboard")
+
+    item_id = request.POST.get("item_id")
+    quantity_used_str = request.POST.get("quantity_used", "0").strip()
+    notes = request.POST.get("notes", "").strip()
+
+    item = get_object_or_404(InventoryItem, pk=item_id)
+    try:
+        quantity_used = int(quantity_used_str)
+        if quantity_used <= 0:
+            raise ValueError
+    except ValueError:
+        messages.error(request, "Quantity used must be a positive integer.")
+        return redirect("frontend:groomer-dashboard")
+
+    if item.quantity < quantity_used:
+        messages.error(request, f"Cannot log usage. Only {item.quantity} {item.unit} of '{item.name}' in stock.")
+        return redirect("frontend:groomer-dashboard")
+
+    log = InventoryUsageLog.objects.create(
+        item=item,
+        groomer=request.user,
+        quantity_used=quantity_used,
+        notes=notes
     )
+    item.quantity = max(0, item.quantity - quantity_used)
+    item.save()
+
+    AuditLog.log_action(request.user, "log_usage", "InventoryUsageLog", log.id, {"item": item.name, "qty_used": quantity_used})
+    messages.success(request, f"Logged usage of {quantity_used} {item.unit} for '{item.name}'.")
+    return redirect("frontend:groomer-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def request_restock(request):
+    if request.user.role not in ["groomer", "admin"]:
+        return redirect("frontend:dashboard")
+
+    item_id = request.POST.get("item_id")
+    quantity_str = request.POST.get("quantity", "0").strip()
+
+    item = get_object_or_404(InventoryItem, pk=item_id)
+    try:
+        quantity = int(quantity_str)
+        if quantity <= 0:
+            raise ValueError
+    except ValueError:
+        messages.error(request, "Quantity must be a positive integer.")
+        return redirect("frontend:dashboard")
+
+    req = RestockRequest.objects.create(
+        item=item,
+        quantity=quantity,
+        status="pending"
+    )
+
+    AuditLog.log_action(request.user, "request_restock", "RestockRequest", req.id, {"item": item.name, "qty": quantity})
+    messages.success(request, f"Restock request for {quantity} {item.unit} of '{item.name}' submitted.")
+    return redirect("frontend:dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def approve_restock(request, pk):
+    if request.user.role != "admin":
+        return redirect("frontend:dashboard")
+
+    req = get_object_or_404(RestockRequest, pk=pk)
+    if req.status != "pending":
+        messages.error(request, "Restock request is not pending.")
+        return redirect("frontend:admin-dashboard")
+
+    req.status = "approved"
+    req.save(update_fields=["status"])
+
+    AuditLog.log_action(request.user, "approve_restock", "RestockRequest", req.id)
+    messages.success(request, f"Restock request for '{req.item.name}' approved.")
+    return redirect("frontend:admin-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def complete_restock(request, pk):
+    if request.user.role != "admin":
+        return redirect("frontend:dashboard")
+
+    req = get_object_or_404(RestockRequest, pk=pk)
+    if req.status != "approved":
+        messages.error(request, "Restock request must be approved first.")
+        return redirect("frontend:admin-dashboard")
+
+    item = req.item
+    old_qty = item.quantity
+    item.quantity += req.quantity
+    item.save(update_fields=["quantity"])
+
+    req.status = "completed"
+    req.save(update_fields=["status"])
+
+    AuditLog.log_action(request.user, "complete_restock", "RestockRequest", req.id, {"qty_added": req.quantity, "new_qty": item.quantity})
+    messages.success(request, f"Restock request completed. Added {req.quantity} {item.unit} to '{item.name}'.")
+    return redirect("frontend:admin-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def manage_staff(request):
+    if request.user.role != "admin":
+        return redirect("frontend:dashboard")
+
+    action = request.POST.get("action")
+
+    if action == "create":
+        username = request.POST.get("username", "").strip()
+        email = request.POST.get("email", "").strip()
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        role = request.POST.get("role", "groomer").strip()
+        password = request.POST.get("password", "").strip()
+
+        if not username or not email or not password or role not in ["admin", "groomer"]:
+            messages.error(request, "Username, Email, password, and valid Role are required.")
+            return redirect("frontend:admin-dashboard")
+
+        if get_user_model().objects.filter(username__iexact=username).exists():
+            messages.error(request, "Username is already taken.")
+            return redirect("frontend:admin-dashboard")
+
+        try:
+            validate_password(password)
+        except ValidationError as error:
+            messages.error(request, " ".join(error.messages))
+            return redirect("frontend:admin-dashboard")
+
+        user = get_user_model().objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            role=role,
+            must_change_password=True
+        )
+        AuditLog.log_action(request.user, "create_staff", "User", user.id, {"role": role, "username": username})
+        messages.success(request, f"Staff account for '{username}' created. They must change password on login.")
+
+    elif action == "reset_password":
+        user_id = request.POST.get("user_id")
+        new_password = request.POST.get("new_password", "").strip()
+
+        user = get_object_or_404(get_user_model(), pk=user_id)
+        if user.role not in ["admin", "groomer"]:
+            messages.error(request, "Cannot reset password for customers from here.")
+            return redirect("frontend:admin-dashboard")
+
+        if not new_password or len(new_password) < 8:
+            messages.error(request, "Password must be at least 8 characters.")
+            return redirect("frontend:admin-dashboard")
+
+        user.set_password(new_password)
+        user.must_change_password = True
+        user.save()
+
+        AuditLog.log_action(request.user, "reset_password", "User", user.id)
+        messages.success(request, f"Password reset for '{user.username}'. They must change password on login.")
+
+    return redirect("frontend:admin-dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def update_appointment_status(request, pk):
+    user = request.user
+    if user.role not in ["admin", "groomer"]:
+        return redirect("frontend:dashboard")
+
+    appointment = get_object_or_404(Appointment, pk=pk)
+    if user.role == "groomer" and appointment.groomer != user:
+        messages.error(request, "You are not assigned to this appointment.")
+        return redirect("frontend:dashboard")
+
+    new_status = request.POST.get("status")
+    allowed = [choice for choice, _ in Appointment.STATUS_CHOICES]
+
+    if new_status not in allowed:
+        messages.error(request, "Invalid status choice.")
+        return redirect("frontend:dashboard")
+
+    old_status = appointment.status
+    appointment.status = new_status
+    appointment.save()
+
+    AuditLog.log_action(user, "update_status", "Appointment", appointment.id, {"old_status": old_status, "new_status": new_status})
+    messages.success(request, f"Appointment status updated to '{appointment.get_status_display()}'.")
+    return redirect("frontend:dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def submit_feedback(request, pk):
+    appointment = get_object_or_404(Appointment, pk=pk, customer=request.user)
+
+    if appointment.status != "completed":
+        messages.error(request, "Feedback can only be submitted for completed appointments.")
+        return redirect("frontend:customer-dashboard")
+
+    if hasattr(appointment, "feedback"):
+        messages.error(request, "Feedback has already been submitted.")
+        return redirect("frontend:customer-dashboard")
+
+    rating_str = request.POST.get("rating", "5").strip()
+    comments = request.POST.get("comments", "").strip()
+
+    try:
+        rating = int(rating_str)
+        if not (1 <= rating <= 5):
+            raise ValueError
+    except ValueError:
+        messages.error(request, "Rating must be an integer between 1 and 5.")
+        return redirect("frontend:customer-dashboard")
+
+    from api.models import AppointmentFeedback
+    feedback = AppointmentFeedback.objects.create(
+        appointment=appointment,
+        rating=rating,
+        comments=comments
+    )
+
+    AuditLog.log_action(request.user, "submit_feedback", "AppointmentFeedback", feedback.id, {"rating": rating})
+    messages.success(request, "Thank you for your rating!")
+    return redirect("frontend:customer-dashboard")
+
+

@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Appointment, Notification, Pet, Service, User
+from .models import Appointment, AuditLog, Notification, Pet, Service, User
 
 
 def get_tokens_for_user(user):
@@ -303,3 +303,52 @@ class AppointmentStatusNotificationTest(APITestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(Notification.objects.filter(user=self.customer).count(), 1)
+
+
+class AuditLogAndDashboardActionTest(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="admin_audit",
+            email="admin_audit@test.com",
+            password="AdminPass123!",
+            role="admin",
+        )
+        self.customer = User.objects.create_user(
+            username="customer_audit",
+            email="cust_audit@test.com",
+            password="CustPass123!",
+            role="customer",
+        )
+
+    def test_audit_log_creation_helper(self):
+        log = AuditLog.log_action(
+            user=self.admin,
+            action="test_action",
+            model_name="User",
+            object_id=self.customer.id,
+            changes={"role": "customer"}
+        )
+        self.assertEqual(AuditLog.objects.count(), 1)
+        self.assertEqual(log.action, "test_action")
+        self.assertEqual(log.user, self.admin)
+        self.assertEqual(log.changes["role"], "customer")
+
+    def test_must_change_password_flag_on_staff_creation(self):
+        token, _ = get_tokens_for_user(self.admin)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        resp = self.client.post(
+            reverse("user-list"),
+            {
+                "username": "new_groomer_staff",
+                "email": "staff@test.com",
+                "password": "Temporary123!",
+                "first_name": "Groom",
+                "last_name": "Staff",
+                "role": "groomer",
+                "must_change_password": True,
+            },
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        new_user = User.objects.get(username="new_groomer_staff")
+        self.assertTrue(new_user.must_change_password)
+
