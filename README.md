@@ -1,25 +1,26 @@
 # Pawze
 
-Pawze is a full-stack pet grooming management platform built for salons that need to handle customer bookings, pet records, appointment tracking, staff workflows, and inventory in one place.
+Pawze is a Django pet grooming management platform for salons that need to handle customer bookings, pet records, appointment tracking, staff workflows, and inventory in one place.
 
 It combines:
 
-- a public booking experience for pet owners
-- role-based dashboards for customers, groomers, and admins
-- a Django REST API for business logic and data storage
-- a React frontend for the web interface
+- a Django-rendered public booking experience for pet owners
+- role-based Django pages for customers, groomers, and admins
+- a Django REST Framework API for business logic and external integrations
+- SQLite for local development
 
 ## What The Project Does
 
 Pawze helps a grooming business manage the full appointment lifecycle:
 
-- customers can register, log in, manage their pets, and book appointments
-- staff can view schedules, track appointment status, and monitor notifications
+- customers can register, log in, manage pets, and book appointments
+- staff can view schedules and track appointment status
 - admins can manage appointments, inventory, staff accounts, and salon operations
 
 The project also supports:
 
-- JWT-based authentication
+- Django session authentication for server-rendered pages
+- JWT authentication for API clients
 - role-based access control
 - feedback collection for completed appointments
 - notification flows for appointment updates
@@ -55,26 +56,19 @@ The project also supports:
 
 ## Tech Stack
 
-### Frontend
-
-- React
-- Vite
-- React Router
-- Tailwind CSS
-
-### Backend
-
 - Django
 - Django REST Framework
-- Simple JWT
+- Simple JWT for API authentication
 - SQLite for local development
+- Server-rendered Django templates
+- Static CSS and small vanilla JavaScript helpers
 
 ## Project Structure
 
 ```text
 Pawze/
-  frontend/   React application
-  backend/    Django REST API
+  backend/    Django project, settings, API app, and manage.py
+  frontend/   Django app for templates, static assets, and page views
 ```
 
 Backend highlights:
@@ -84,24 +78,12 @@ Backend highlights:
 
 Frontend highlights:
 
-- `frontend/src/pages/` contains public pages and dashboards
-- `frontend/src/components/` contains layout and shared UI components
-- `frontend/src/context/AppContext.jsx` contains shared auth and API interaction logic
-
-## Key Features
-
-- public booking flow without forcing account creation
-- customer account registration and login
-- dashboard redirection based on role
-- admin staff provisioning with forced password reset
-- appointment scheduling and status updates
-- customer feedback for completed appointments
-- inventory tracking and low-stock visibility
-- in-app notifications
+- `frontend/views.py` contains page controllers for landing, booking, auth, and dashboards
+- `frontend/templates/frontend/` contains Django templates
+- `frontend/static/frontend/` contains CSS, images, favicon, and vanilla JavaScript
+- `frontend/data.py` contains display content used by the landing page
 
 ## Local Development
-
-## 1. Clone and open the project
 
 Open the project root:
 
@@ -109,41 +91,34 @@ Open the project root:
 cd Pawze
 ```
 
-## 2. Run the backend
-
-The backend is configured to use SQLite by default, so you can start without PostgreSQL.
+Install Python dependencies:
 
 ```bash
 cd backend
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Run the Django project:
+
+```bash
 python manage.py migrate
 python manage.py runserver
 ```
 
-Backend base URL:
+Application URLs:
 
 ```text
+http://127.0.0.1:8000/
+http://127.0.0.1:8000/book/
+http://127.0.0.1:8000/login/
 http://127.0.0.1:8000/api/
-```
-
-## 3. Run the frontend
-
-In a separate terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend dev URL:
-
-```text
-http://127.0.0.1:5173/
 ```
 
 ## Database
 
-Pawze currently supports SQLite out of the box for development.
+Pawze uses SQLite out of the box for development.
 
 SQLite is a good choice for now if you are:
 
@@ -183,42 +158,13 @@ If PostgreSQL variables are not provided, the app uses SQLite automatically.
 - `GET/POST /api/inventory/`
 - `GET/POST /api/notifications/`
 
-## Current State Of The Project
-
-Pawze is in a strong MVP stage.
-
-The project already has:
-
-- a clear product direction
-- a working backend structure
-- authenticated user flows
-- role-based dashboard behavior
-- test coverage for core backend flows
-
-Recent cleanup and stabilization work improved:
-
-- backend project structure
-- user/login API contract
-- staff account creation
-- notification behavior
-- repository hygiene
-
-## Recommended Next Steps
-
-- remove committed runtime folders like virtual environments and `node_modules` from version control
-- seed demo users and services for easier testing
-- split large dashboard files into smaller feature-focused components
-- add more user-facing success and error states across forms
-- prepare PostgreSQL configuration for production use later
-
 ## Verification
 
-The backend has been verified with:
+Use these commands from `backend/`:
 
 ```bash
 python manage.py check
 python manage.py migrate
 python manage.py test
 ```
-
 
