@@ -1225,3 +1225,40 @@ td {
   flex-direction: column;
 }
 
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+}
+.pagination a,
+.pagination span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--muted);
+}
+.pagination a:hover {
+  background: var(--surface-soft);
+  color: var(--text-strong);
+}
+.pagination .current-page {
+  background: linear-gradient(135deg, var(--sage), var(--warm));
+  color: var(--ink);
+  border-color: transparent;
+  font-weight: 700;
+}
+.pagination .disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}

@@ -109,6 +109,19 @@
           </tbody>
         </table>
       </div>
+      {% if appointments.has_other_pages %}
+        <div class="pagination">
+          {% if appointments.has_previous %}<a href="?appt_page={{ appointments.previous_page_number }}">‹ Prev</a>{% endif %}
+          {% for num in appointments.paginator.page_range %}
+            {% if appointments.number == num %}
+              <span class="current-page">{{ num }}</span>
+            {% elif num >= appointments.number|add:"-2" and num <= appointments.number|add:"2" %}
+              <a href="?appt_page={{ num }}">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if appointments.has_next %}<a href="?appt_page={{ appointments.next_page_number }}">Next ›</a>{% endif %}
+        </div>
+      {% endif %}
     </div>
   </div>
 
@@ -594,3 +607,5 @@
   }
 </script>
 {% endblock %}
+
+{% block footer %}{% endblock %}

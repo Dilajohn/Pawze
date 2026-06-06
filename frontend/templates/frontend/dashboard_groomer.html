@@ -15,7 +15,7 @@
 
   <div class="metric-grid">
     <article class="metric-card">
-      <span>Assigned Visits Today</span>
+      <span>Assigned Visits</span>
       <strong>{{ appointment_count }}</strong>
     </article>
     <article class="metric-card">
@@ -24,11 +24,10 @@
     </article>
   </div>
 
-  <!-- Dashboard Navigation Tabs -->
-  <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('appointments-tab')">Assigned Appointments ({{ appointment_count }})</button>
-    <button class="tab-btn" onclick="switchTab('inventory-tab')">Supplies & Stock Check</button>
-    <button class="tab-btn" onclick="switchTab('usage-logs-tab')">Recent Usage Logs</button>
+  <div class="tabs-nav" id="groomer-tabs-nav">
+    <button class="tab-btn active" data-tab="appointments-tab">Appointments ({{ appointment_count }})</button>
+    <button class="tab-btn" data-tab="inventory-tab">Supplies &amp; Stock</button>
+    <button class="tab-btn" data-tab="usage-logs-tab">Usage Logs</button>
   </div>
 
   <!-- Appointments Tab -->
@@ -42,7 +41,7 @@
               <th>Pet Details</th>
               <th>Service</th>
               <th>Customer</th>
-              <th>Date & Time</th>
+              <th>Date &amp; Time</th>
               <th>Status</th>
               <th>Update Status</th>
             </tr>
@@ -52,29 +51,21 @@
               <tr>
                 <td>
                   <strong>{{ appt.pet_name }}</strong><br>
-                  <small class="text-muted">
-                    Breed: {{ appt.pet.breed|default:"—" }} | 
-                    Age: {{ appt.pet.age|default:"—" }} | 
-                    Weight: {{ appt.pet.weight|default:"—" }}
-                  </small>
+                  <small>Breed: {{ appt.pet.breed|default:"—" }} | Age: {{ appt.pet.age|default:"—" }} | Weight: {{ appt.pet.weight|default:"—" }}</small>
                   {% if appt.pet.notes or appt.notes %}
-                    <div class="pet-notes-box">
-                      <strong>Notes:</strong> {{ appt.pet.notes|default:appt.notes }}
-                    </div>
+                    <div class="pet-notes-box"><strong>Notes:</strong> {{ appt.pet.notes|default:appt.notes }}</div>
                   {% endif %}
                 </td>
                 <td>{{ appt.service.name|default:"Custom Service" }}</td>
                 <td>{{ appt.customer_name }}</td>
                 <td>{{ appt.date }} at {{ appt.time|time:"H:i" }}</td>
                 <td>
-                  <span class="status-chip status-{{ appt.status }}">
-                    {{ appt.get_status_display }}
-                  </span>
+                  <span class="status-chip status-{{ appt.status }}">{{ appt.get_status_display }}</span>
                 </td>
                 <td>
                   <form method="post" action="{% url 'frontend:update-appointment-status' appt.id %}" class="status-form">
                     {% csrf_token %}
-                    <select name="status" onchange="this.form.submit()">
+                    <select name="status" class="auto-submit-select">
                       {% for value, label in appt.STATUS_CHOICES %}
                         <option value="{{ value }}" {% if appt.status == value %}selected{% endif %}>{{ label }}</option>
                       {% endfor %}
@@ -83,31 +74,36 @@
                 </td>
               </tr>
             {% empty %}
-              <tr>
-                <td colspan="6">No appointments assigned to you today. Enjoy your day!</td>
-              </tr>
+              <tr><td colspan="6">No appointments assigned to you yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      {% if appointments.has_other_pages %}
+        <div class="pagination">
+          {% if appointments.has_previous %}<a href="?appt_page={{ appointments.previous_page_number }}">‹ Prev</a>{% endif %}
+          {% for num in appointments.paginator.page_range %}
+            {% if appointments.number == num %}
+              <span class="current-page">{{ num }}</span>
+            {% elif num >= appointments.number|add:"-2" and num <= appointments.number|add:"2" %}
+              <a href="?appt_page={{ num }}">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if appointments.has_next %}<a href="?appt_page={{ appointments.next_page_number }}">Next ›</a>{% endif %}
+        </div>
+      {% endif %}
     </div>
   </div>
 
   <!-- Inventory Tab -->
   <div id="inventory-tab" class="tab-content hidden">
     <div class="dashboard-grid">
-      <!-- Stock List -->
       <section class="dashboard-panel">
         <h2>Salon Inventory Stock</h2>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>Item Name</th>
-                <th>Category</th>
-                <th>Current Stock</th>
-                <th>Status</th>
-              </tr>
+              <tr><th>Item Name</th><th>Category</th><th>Current Stock</th><th>Status</th></tr>
             </thead>
             <tbody>
               {% for item in inventory %}
@@ -124,18 +120,14 @@
                   </td>
                 </tr>
               {% empty %}
-                <tr>
-                  <td colspan="4">No inventory registered. Contact admin.</td>
-                </tr>
+                <tr><td colspan="4">No inventory registered. Contact admin.</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Supplies Actions Sidebar -->
       <aside class="sidebar-panels">
-        <!-- Log Material Usage -->
         <div class="dashboard-panel">
           <h2>Log Material Usage</h2>
           <form class="panel-form" method="post" action="{% url 'frontend:log-inventory-usage' %}">
@@ -160,8 +152,7 @@
           </form>
         </div>
 
-        <!-- Submit Restock Request -->
-        <div class="dashboard-panel" style="margin-top: 1.5rem;">
+        <div class="dashboard-panel" style="margin-top:1.5rem;">
           <h2>Request Stock Restock</h2>
           <form class="panel-form" method="post" action="{% url 'frontend:request-restock' %}">
             {% csrf_token %}
@@ -191,12 +182,7 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Material</th>
-              <th>Quantity Used</th>
-              <th>Notes</th>
-            </tr>
+            <tr><th>Timestamp</th><th>Material</th><th>Quantity Used</th><th>Notes</th></tr>
           </thead>
           <tbody>
             {% for log in usage_logs %}
@@ -207,28 +193,42 @@
                 <td>{{ log.notes|default:"—" }}</td>
               </tr>
             {% empty %}
-              <tr>
-                <td colspan="4">No supply usage logged by you recently.</td>
-              </tr>
+              <tr><td colspan="4">No supply usage logged yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      {% if usage_logs.has_other_pages %}
+        <div class="pagination">
+          {% if usage_logs.has_previous %}<a href="?usage_page={{ usage_logs.previous_page_number }}">‹ Prev</a>{% endif %}
+          {% for num in usage_logs.paginator.page_range %}
+            {% if usage_logs.number == num %}
+              <span class="current-page">{{ num }}</span>
+            {% elif num >= usage_logs.number|add:"-2" and num <= usage_logs.number|add:"2" %}
+              <a href="?usage_page={{ num }}">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if usage_logs.has_next %}<a href="?usage_page={{ usage_logs.next_page_number }}">Next ›</a>{% endif %}
+        </div>
+      {% endif %}
     </div>
   </div>
 </section>
 
-<!-- Tab Switching Script -->
 <script>
-  function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(function(el) {
-      el.classList.add('hidden');
-    });
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-      btn.classList.remove('active');
-    });
-    document.getElementById(tabId).classList.remove('hidden');
-    event.currentTarget.classList.add('active');
-  }
+  document.getElementById('groomer-tabs-nav').addEventListener('click', function (e) {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('#groomer-tabs-nav .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).classList.remove('hidden');
+    btn.classList.add('active');
+  });
+
+  document.querySelectorAll('.auto-submit-select').forEach(function (sel) {
+    sel.addEventListener('change', function () { this.closest('form').submit(); });
+  });
 </script>
 {% endblock %}
+
+{% block footer %}{% endblock %}

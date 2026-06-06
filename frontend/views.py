@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, get_user_model, login, logout, upd
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db.models import Count, F
 from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
@@ -59,6 +60,9 @@ def _dashboard_path_for(user):
 
 
 def landing(request):
+    # Authenticated users go straight to their dashboard
+    if request.user.is_authenticated:
+        return redirect(_dashboard_path_for(request.user))
     return render(
         request,
         "frontend/landing.html",
@@ -292,27 +296,38 @@ def admin_dashboard(request):
     if request.user.must_change_password:
         return redirect("frontend:change-password")
 
-    appointments = Appointment.objects.select_related("service", "groomer", "customer", "pet").order_by("-date", "-time")
-    inventory = InventoryItem.objects.all().order_by("name")
-    restock_requests = RestockRequest.objects.select_related("item").all().order_by("-created_at")
-    staff_members = get_user_model().objects.filter(role__in=["admin", "groomer"]).order_by("username")
+    # Pagination page numbers
+    appt_page    = request.GET.get("appt_page", 1)
+    inv_page     = request.GET.get("inv_page", 1)
+    restock_page = request.GET.get("restock_page", 1)
+    staff_page   = request.GET.get("staff_page", 1)
+    clog_page    = request.GET.get("clog_page", 1)
+    log_page     = request.GET.get("log_page", 1)
+
+    all_appointments  = Appointment.objects.select_related("service", "groomer", "customer", "pet").order_by("-date", "-time")
+    all_inventory     = InventoryItem.objects.all().order_by("name")
+    all_restock       = RestockRequest.objects.select_related("item").all().order_by("-created_at")
+    all_staff         = get_user_model().objects.filter(role__in=["admin", "groomer"]).order_by("username")
+    all_customer_logs = AuditLog.objects.select_related("user").filter(user__role="customer").order_by("-timestamp")
+    all_audit_logs    = AuditLog.objects.select_related("user").all().order_by("-timestamp")
+
+    appointments  = Paginator(all_appointments, 20).get_page(appt_page)
+    inventory     = Paginator(all_inventory, 20).get_page(inv_page)
+    restock_requests = Paginator(all_restock, 20).get_page(restock_page)
+    staff_members = Paginator(all_staff, 20).get_page(staff_page)
+    customer_logs = Paginator(all_customer_logs, 25).get_page(clog_page)
+    audit_logs    = Paginator(all_audit_logs, 25).get_page(log_page)
+
     groomers = get_user_model().objects.filter(role="groomer").order_by("first_name", "username")
-    audit_logs = AuditLog.objects.select_related("user").all().order_by("-timestamp")[:150]
 
-    # Customer activity: audit logs for users with role=customer
-    customer_logs = AuditLog.objects.select_related("user").filter(
-        user__role="customer"
-    ).order_by("-timestamp")[:200]
-
-    # Metrics
-    appointment_count = appointments.count()
-    pet_count = Pet.objects.count()
-    low_stock_count = inventory.filter(quantity__lte=F("threshold")).count()
+    appointment_count = all_appointments.count()
+    pet_count         = Pet.objects.count()
+    low_stock_count   = all_inventory.filter(quantity__lte=F("threshold")).count()
 
     context = {
         "title": "Admin Dashboard",
         "subtitle": "Appointments, staff workflows, and inventory in one view.",
-        "appointments": appointments[:50],
+        "appointments": appointments,
         "inventory": inventory,
         "restock_requests": restock_requests,
         "staff_members": staff_members,
@@ -333,13 +348,18 @@ def groomer_dashboard(request):
     if request.user.must_change_password:
         return redirect("frontend:change-password")
 
-    appointments = Appointment.objects.filter(groomer=request.user).select_related("service", "customer", "pet").order_by("date", "time")
-    inventory = InventoryItem.objects.all().order_by("name")
-    usage_logs = InventoryUsageLog.objects.filter(groomer=request.user).select_related("item").order_by("-timestamp")[:20]
+    appt_page  = request.GET.get("appt_page", 1)
+    usage_page = request.GET.get("usage_page", 1)
 
-    # Metrics
-    appointment_count = appointments.count()
-    low_stock_count = inventory.filter(quantity__lte=F("threshold")).count()
+    all_appointments = Appointment.objects.filter(groomer=request.user).select_related("service", "customer", "pet").order_by("date", "time")
+    all_usage_logs   = InventoryUsageLog.objects.filter(groomer=request.user).select_related("item").order_by("-timestamp")
+    inventory        = InventoryItem.objects.all().order_by("name")
+
+    appointments = Paginator(all_appointments, 20).get_page(appt_page)
+    usage_logs   = Paginator(all_usage_logs, 20).get_page(usage_page)
+
+    appointment_count = all_appointments.count()
+    low_stock_count   = inventory.filter(quantity__lte=F("threshold")).count()
 
     context = {
         "title": "Groomer Dashboard",
@@ -386,21 +406,26 @@ def customer_dashboard(request):
         messages.success(request, "Your profile has been updated.")
         return redirect("frontend:customer-dashboard")
 
-    appointments = Appointment.objects.filter(customer=request.user).select_related("service", "groomer", "pet").order_by("-date", "-time")
-    pets = Pet.objects.filter(owner=request.user).order_by("name")
-    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
+    appt_page  = request.GET.get("appt_page", 1)
+    notif_page = request.GET.get("notif_page", 1)
 
-    # Metrics
-    appointment_count = appointments.count()
-    pet_count = pets.count()
-    unread_notifications_count = notifications.filter(is_read=False).count()
+    all_appointments = Appointment.objects.filter(customer=request.user).select_related("service", "groomer", "pet").order_by("-date", "-time")
+    all_notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
+    pets = Pet.objects.filter(owner=request.user).order_by("name")
+
+    appointments  = Paginator(all_appointments, 10).get_page(appt_page)
+    notifications = Paginator(all_notifications, 15).get_page(notif_page)
+
+    appointment_count          = all_appointments.count()
+    pet_count                  = pets.count()
+    unread_notifications_count = all_notifications.filter(is_read=False).count()
 
     context = {
         "title": "Customer Dashboard",
         "subtitle": "Your pets, bookings, and appointment history.",
         "appointments": appointments,
         "pets": pets,
-        "notifications": notifications[:30],
+        "notifications": notifications,
         "appointment_count": appointment_count,
         "pet_count": pet_count,
         "unread_notifications_count": unread_notifications_count,
