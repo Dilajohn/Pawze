@@ -11,7 +11,6 @@
       <h1>Admin Dashboard</h1>
       <p>Monitor operations, manage inventory, staff configurations, and audit system events.</p>
     </div>
-    <a class="button-primary" href="{% url 'frontend:book' %}">New Appointment</a>
   </div>
 
   <div class="metric-grid">
@@ -24,17 +23,18 @@
       <strong>{{ pet_count }}</strong>
     </article>
     <article class="metric-card">
-      <span>Low Stock warnings</span>
+      <span>Low Stock Warnings</span>
       <strong>{{ low_stock_count }}</strong>
     </article>
   </div>
 
   <!-- Dashboard Navigation Tabs -->
-  <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('appointments-tab')">Appointments</button>
-    <button class="tab-btn" onclick="switchTab('inventory-tab')">Inventory & Restocks</button>
-    <button class="tab-btn" onclick="switchTab('staff-tab')">Staff Management</button>
-    <button class="tab-btn" onclick="switchTab('logs-tab')">Audit Logs</button>
+  <div class="tabs-nav" id="admin-tabs-nav">
+    <button class="tab-btn active" data-tab="appointments-tab">Appointments</button>
+    <button class="tab-btn" data-tab="inventory-tab">Inventory &amp; Restocks</button>
+    <button class="tab-btn" data-tab="staff-tab">Staff Management</button>
+    <button class="tab-btn" data-tab="customers-tab">Customer Activity</button>
+    <button class="tab-btn" data-tab="logs-tab">Audit Logs</button>
   </div>
 
   <!-- Appointments Tab -->
@@ -48,7 +48,7 @@
               <th>Pet Details</th>
               <th>Service</th>
               <th>Customer</th>
-              <th>Date & Time</th>
+              <th>Date &amp; Time</th>
               <th>Groomer</th>
               <th>Assign Groomer</th>
               <th>Status</th>
@@ -69,17 +69,14 @@
                 <td>
                   <form method="post" action="{% url 'frontend:assign-appointment-groomer' appt.id %}">
                     {% csrf_token %}
-                    <select name="groomer_id" onchange="this.form.submit()">
-                      <option value="">Assign groomer...</option>
+                    <select name="groomer_id" class="auto-submit-select">
+                      <option value="">Assign groomer…</option>
                       {% for groomer in groomers %}
                         <option value="{{ groomer.id }}" {% if appt.groomer and groomer.id == appt.groomer.id %}selected{% endif %}>
                           {{ groomer.first_name|default:groomer.username }}
                         </option>
                       {% endfor %}
                     </select>
-                    <noscript>
-                      <button type="submit" class="button-primary btn-sm">Assign</button>
-                    </noscript>
                   </form>
                 </td>
                 <td>
@@ -90,7 +87,7 @@
                 <td>
                   <form method="post" action="{% url 'frontend:update-appointment-status' appt.id %}" class="status-form">
                     {% csrf_token %}
-                    <select name="status" onchange="this.form.submit()">
+                    <select name="status" class="auto-submit-select">
                       {% for value, label in appt.STATUS_CHOICES %}
                         <option value="{{ value }}" {% if appt.status == value %}selected{% endif %}>{{ label }}</option>
                       {% endfor %}
@@ -112,11 +109,10 @@
   <!-- Inventory & Restocks Tab -->
   <div id="inventory-tab" class="tab-content hidden">
     <div class="dashboard-grid">
-      <!-- Left side: Stock items & Restock requests -->
+      <!-- Left: Stock items & Restock requests -->
       <section class="dashboard-panel-stack">
-        <!-- Stock items list -->
         <div class="dashboard-panel">
-          <h2>Grooming Products & Tools</h2>
+          <h2>Grooming Products &amp; Tools</h2>
           <div class="table-wrap">
             <table>
               <thead>
@@ -134,7 +130,7 @@
                   <tr class="{% if item.is_low_stock %}stock-danger{% endif %}">
                     <td>
                       <strong>{{ item.name }}</strong><br>
-                      <small class="text-muted">Expiry: {{ item.expiry_date|default:"N/A" }}</small>
+                      <small>Expiry: {{ item.expiry_date|default:"N/A" }}</small>
                     </td>
                     <td>{{ item.category }}</td>
                     <td>{{ item.quantity }} {{ item.unit }}</td>
@@ -148,8 +144,12 @@
                     </td>
                     <td>
                       <div class="btn-row-flex">
-                        <button class="button-action btn-sm" onclick="populateInventoryForm('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.category|escapejs }}', '{{ item.quantity }}', '{{ item.unit|escapejs }}', '{{ item.threshold }}', '{{ item.supplier_name|escapejs }}', '{{ item.expiry_date|date:'Y-m-d' }}')">Edit</button>
-                        <form method="post" action="{% url 'frontend:delete-inventory' item.id %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this inventory item?');">
+                        <button class="button-action btn-sm"
+                          onclick="populateInventoryForm('{{ item.id }}','{{ item.name|escapejs }}','{{ item.category|escapejs }}','{{ item.quantity }}','{{ item.unit|escapejs }}','{{ item.threshold }}','{{ item.supplier_name|escapejs }}','{{ item.expiry_date|date:'Y-m-d' }}')">
+                          Edit
+                        </button>
+                        <form method="post" action="{% url 'frontend:delete-inventory' item.id %}" style="display:inline;"
+                          onsubmit="return confirm('Delete {{ item.name|escapejs }}? This cannot be undone.');">
                           {% csrf_token %}
                           <button type="submit" class="button-danger btn-sm">Delete</button>
                         </form>
@@ -157,25 +157,22 @@
                     </td>
                   </tr>
                 {% empty %}
-                  <tr>
-                    <td colspan="6">No inventory items. Register one on the right.</td>
-                  </tr>
+                  <tr><td colspan="6">No inventory items. Register one on the right.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Restock Requests list -->
-        <div class="dashboard-panel" style="margin-top: 1.5rem;">
+        <div class="dashboard-panel" style="margin-top:1.5rem;">
           <h2>Staff Restock Requests</h2>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Product</th>
-                  <th>Requested Quantity</th>
-                  <th>Submission Date</th>
+                  <th>Qty Requested</th>
+                  <th>Submitted</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -186,11 +183,7 @@
                     <td><strong>{{ req.item.name }}</strong></td>
                     <td>{{ req.quantity }} {{ req.item.unit }}</td>
                     <td>{{ req.created_at|date:"M d, H:i" }}</td>
-                    <td>
-                      <span class="restock-badge status-{{ req.status }}">
-                        {{ req.get_status_display }}
-                      </span>
-                    </td>
+                    <td><span class="restock-badge status-{{ req.status }}">{{ req.get_status_display }}</span></td>
                     <td>
                       {% if req.status == "pending" %}
                         <form method="post" action="{% url 'frontend:approve-restock' req.id %}" style="display:inline;">
@@ -203,14 +196,12 @@
                           <button type="submit" class="button-primary btn-sm">Complete (Add Stock)</button>
                         </form>
                       {% else %}
-                        <span class="text-muted">No actions</span>
+                        <span style="color:var(--muted-soft)">—</span>
                       {% endif %}
                     </td>
                   </tr>
                 {% empty %}
-                  <tr>
-                    <td colspan="5">No restock requests submitted.</td>
-                  </tr>
+                  <tr><td colspan="5">No restock requests submitted.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -218,18 +209,16 @@
         </div>
       </section>
 
-      <!-- Right side: Add/Edit Product form -->
+      <!-- Right: Add / Edit Product form -->
       <aside class="dashboard-panel align-start">
         <h2 id="inv-form-title">Register Product</h2>
         <form class="panel-form" method="post" action="{% url 'frontend:manage-inventory' %}">
           {% csrf_token %}
           <input type="hidden" name="item_id" id="inv_form_id">
-          
           <label class="field">
             <span>Product Name *</span>
             <input name="name" id="inv_form_name" required placeholder="e.g. Lavender Pet Shampoo">
           </label>
-
           <label class="field">
             <span>Category *</span>
             <select name="category" id="inv_form_category" required>
@@ -238,34 +227,30 @@
               <option value="Accessories">Accessories</option>
             </select>
           </label>
-
           <div class="form-row">
             <label class="field">
               <span>Quantity *</span>
-              <input type="number" name="quantity" id="inv_form_quantity" required min="0" placeholder="e.g. 5">
+              <input type="number" name="quantity" id="inv_form_quantity" required min="0" placeholder="5">
             </label>
             <label class="field">
               <span>Unit *</span>
-              <input name="unit" id="inv_form_unit" required placeholder="e.g. Bottles, scissors">
+              <input name="unit" id="inv_form_unit" required placeholder="Bottles / scissors">
             </label>
           </div>
-
           <div class="form-row">
             <label class="field">
               <span>Alert Threshold *</span>
-              <input type="number" name="threshold" id="inv_form_threshold" required min="0" placeholder="e.g. 2">
+              <input type="number" name="threshold" id="inv_form_threshold" required min="0" placeholder="2">
             </label>
             <label class="field">
               <span>Supplier Name</span>
-              <input name="supplier_name" id="inv_form_supplier" placeholder="e.g. VetSupply Ltd">
+              <input name="supplier_name" id="inv_form_supplier" placeholder="VetSupply Ltd">
             </label>
           </div>
-
           <label class="field">
-            <span>Expiry Date (Consumables only)</span>
+            <span>Expiry Date (consumables only)</span>
             <input type="date" name="expiry_date" id="inv_form_expiry">
           </label>
-
           <div class="btn-group">
             <button class="button-primary" type="submit" id="inv-submit-btn">Save Product</button>
             <button class="button-secondary hidden" type="button" id="inv-cancel-btn" onclick="resetInventoryForm()">Cancel</button>
@@ -278,19 +263,20 @@
   <!-- Staff Management Tab -->
   <div id="staff-tab" class="tab-content hidden">
     <div class="dashboard-grid">
-      <!-- Staff Users List -->
+      <!-- Staff list -->
       <section class="dashboard-panel">
-        <h2>Active Salon Staff & Admins</h2>
+        <h2>Active Salon Staff &amp; Admins</h2>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Username</th>
                 <th>Full Name</th>
-                <th>Email Address</th>
+                <th>Email</th>
                 <th>Role</th>
-                <th>Must Reset Password?</th>
-                <th>Action</th>
+                <th>Initial Password</th>
+                <th>Must Reset?</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -299,8 +285,21 @@
                   <td><strong>{{ staff.username }}</strong></td>
                   <td>{{ staff.first_name }} {{ staff.last_name }}</td>
                   <td>{{ staff.email }}</td>
+                  <td><span class="status-chip role-{{ staff.role }}">{{ staff.get_role_display }}</span></td>
                   <td>
-                    <span class="status-chip role-{{ staff.role }}">{{ staff.get_role_display }}</span>
+                    {% if staff.initial_password %}
+                      <span class="password-reveal" id="pw-{{ staff.id }}" style="font-family:monospace;filter:blur(5px);cursor:pointer;user-select:none;"
+                        title="Click to reveal"
+                        onclick="togglePasswordReveal('{{ staff.id }}')">
+                        {{ staff.initial_password }}
+                      </span>
+                      <small style="display:block;color:var(--muted-soft);font-size:0.7rem;margin-top:2px;">
+                        Not yet changed — click to reveal
+                      </small>
+                    {% else %}
+                      <span style="color:var(--muted-soft)">—</span>
+                      <small style="display:block;color:var(--sage);font-size:0.7rem;margin-top:2px;">Changed by user</small>
+                    {% endif %}
                   </td>
                   <td>
                     {% if staff.must_change_password %}
@@ -310,28 +309,27 @@
                     {% endif %}
                   </td>
                   <td>
-                    <button class="button-action btn-sm" onclick="showResetForm('{{ staff.id }}', '{{ staff.username|escapejs }}')">Reset Password</button>
+                    <button class="button-action btn-sm"
+                      onclick="showResetForm('{{ staff.id }}', '{{ staff.username|escapejs }}')">
+                      Reset Password
+                    </button>
                   </td>
                 </tr>
               {% empty %}
-                <tr>
-                  <td colspan="6">No staff accounts registered.</td>
-                </tr>
+                <tr><td colspan="7">No staff accounts registered.</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Staff Actions Sidebar -->
+      <!-- Sidebar: Create staff + Reset password -->
       <aside class="sidebar-panels">
-        <!-- Create Staff Account -->
         <div class="dashboard-panel">
           <h2>Create Staff Account</h2>
           <form class="panel-form" method="post" action="{% url 'frontend:manage-staff' %}">
             {% csrf_token %}
             <input type="hidden" name="action" value="create">
-            
             <label class="field">
               <span>Username *</span>
               <input name="username" required placeholder="groomer_mike">
@@ -359,27 +357,45 @@
             </label>
             <label class="field">
               <span>Assigned Password *</span>
-              <input name="password" type="password" required placeholder="Min 8 chars (assigned by admin)">
+              <div style="position:relative;">
+                <input name="password" id="create-password-input" type="text" required
+                  placeholder="Min 8 chars"
+                  style="padding-right:3rem;">
+                <button type="button" onclick="toggleCreatePassword()"
+                  style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.8rem;">
+                  Hide
+                </button>
+              </div>
+              <small style="color:var(--muted-soft);font-size:0.72rem;">
+                The password is visible so you can note it down for the staff member.
+              </small>
             </label>
             <button class="button-primary" type="submit">Register Staff</button>
           </form>
         </div>
 
-        <!-- Reset Password Modal Container -->
-        <div id="reset-password-sidebar" class="dashboard-panel hidden" style="margin-top: 1.5rem;">
+        <div id="reset-password-sidebar" class="dashboard-panel hidden" style="margin-top:1.5rem;">
           <h2>Reset Staff Password</h2>
           <form class="panel-form" method="post" action="{% url 'frontend:manage-staff' %}">
             {% csrf_token %}
             <input type="hidden" name="action" value="reset_password">
             <input type="hidden" name="user_id" id="reset_user_id">
-            
-            <p>Assigning a new password for user: <strong id="reset_username_label">groomer</strong></p>
-            
+            <p>Assigning a new temporary password for: <strong id="reset_username_label"></strong></p>
             <label class="field">
               <span>New Password *</span>
-              <input name="new_password" type="password" required placeholder="Min 8 characters">
+              <div style="position:relative;">
+                <input name="new_password" id="reset-password-input" type="text" required
+                  placeholder="Min 8 characters"
+                  style="padding-right:3rem;">
+                <button type="button" onclick="toggleResetPassword()"
+                  style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.8rem;">
+                  Hide
+                </button>
+              </div>
+              <small style="color:var(--muted-soft);font-size:0.72rem;">
+                Visible so you can share it. The staff member must change it on next login.
+              </small>
             </label>
-            
             <div class="btn-group">
               <button class="button-primary" type="submit">Save Password</button>
               <button class="button-secondary" type="button" onclick="hideResetForm()">Cancel</button>
@@ -390,10 +406,50 @@
     </div>
   </div>
 
+  <!-- Customer Activity Tab -->
+  <div id="customers-tab" class="tab-content hidden">
+    <div class="dashboard-panel">
+      <h2>Customer Activity Log</h2>
+      <p style="color:var(--muted);margin-top:0;">Login history, bookings, pet management, and profile changes by customers. Passwords are never shown.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Customer</th>
+              <th>Action</th>
+              <th>Component</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in customer_logs %}
+              <tr>
+                <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+                <td><strong>{{ log.user.username|default:"—" }}</strong></td>
+                <td><span class="action-badge action-{{ log.action }}">{{ log.action }}</span></td>
+                <td>{{ log.model_name }}</td>
+                <td>
+                  {% if log.changes %}
+                    <pre class="json-code">{{ log.changes }}</pre>
+                  {% else %}
+                    <span style="color:var(--muted-soft)">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">No customer activity recorded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- Audit Logs Tab -->
   <div id="logs-tab" class="tab-content hidden">
     <div class="dashboard-panel">
-      <h2>System Activity Logs (Audit Logs)</h2>
+      <h2>Full System Audit Log</h2>
       <div class="table-wrap">
         <table>
           <thead>
@@ -403,7 +459,7 @@
               <th>Action</th>
               <th>Component</th>
               <th>Target ID</th>
-              <th>Changes Logged</th>
+              <th>Changes</th>
             </tr>
           </thead>
           <tbody>
@@ -418,14 +474,12 @@
                   {% if log.changes %}
                     <pre class="json-code">{{ log.changes }}</pre>
                   {% else %}
-                    <span class="text-muted">—</span>
+                    <span style="color:var(--muted-soft)">—</span>
                   {% endif %}
                 </td>
               </tr>
             {% empty %}
-              <tr>
-                <td colspan="6">No activity logs recorded.</td>
-              </tr>
+              <tr><td colspan="6">No activity logs recorded.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -434,29 +488,74 @@
   </div>
 </section>
 
-<!-- Dashboard Interactive Script -->
 <script>
-  function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(function(el) {
-      el.classList.add('hidden');
-    });
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-      btn.classList.remove('active');
-    });
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  document.getElementById('admin-tabs-nav').addEventListener('click', function (e) {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    const tabId = btn.dataset.tab;
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId).classList.remove('hidden');
-    event.currentTarget.classList.add('active');
+    btn.classList.add('active');
+  });
+
+  // ── Auto-submit selects (groomer assign + status update) ──────────────────
+  document.querySelectorAll('.auto-submit-select').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      this.closest('form').submit();
+    });
+  });
+
+  // ── Staff password reveal (click-to-show blurred text) ────────────────────
+  function togglePasswordReveal(staffId) {
+    const el = document.getElementById('pw-' + staffId);
+    if (!el) return;
+    const isBlurred = el.style.filter === 'blur(5px)';
+    el.style.filter = isBlurred ? 'none' : 'blur(5px)';
+    el.title = isBlurred ? 'Click to hide' : 'Click to reveal';
   }
 
+  // ── Create staff password visibility toggle ───────────────────────────────
+  function toggleCreatePassword() {
+    const input = document.getElementById('create-password-input');
+    const btn = input.nextElementSibling;
+    if (input.type === 'text') {
+      input.type = 'password';
+      btn.textContent = 'Show';
+    } else {
+      input.type = 'text';
+      btn.textContent = 'Hide';
+    }
+  }
+
+  // ── Reset password visibility toggle ─────────────────────────────────────
+  function toggleResetPassword() {
+    const input = document.getElementById('reset-password-input');
+    const btn = input.nextElementSibling;
+    if (input.type === 'text') {
+      input.type = 'password';
+      btn.textContent = 'Show';
+    } else {
+      input.type = 'text';
+      btn.textContent = 'Hide';
+    }
+  }
+
+  // ── Reset password sidebar ────────────────────────────────────────────────
   function showResetForm(userId, username) {
     document.getElementById('reset_user_id').value = userId;
-    document.getElementById('reset_username_label').innerText = username;
+    document.getElementById('reset_username_label').textContent = username;
     document.getElementById('reset-password-sidebar').classList.remove('hidden');
+    document.getElementById('reset-password-sidebar').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function hideResetForm() {
     document.getElementById('reset-password-sidebar').classList.add('hidden');
+    document.getElementById('reset-password-input').value = '';
   }
 
+  // ── Inventory form populate / reset ──────────────────────────────────────
   function populateInventoryForm(id, name, category, quantity, unit, threshold, supplier, expiry) {
     document.getElementById('inv_form_id').value = id;
     document.getElementById('inv_form_name').value = name;
@@ -466,24 +565,25 @@
     document.getElementById('inv_form_threshold').value = threshold;
     document.getElementById('inv_form_supplier').value = supplier;
     document.getElementById('inv_form_expiry').value = expiry;
-
-    document.getElementById('inv-form-title').innerText = "Edit Product Detail";
-    document.getElementById('inv-submit-btn').innerText = "Update Product";
+    document.getElementById('inv-form-title').textContent = 'Edit Product';
+    document.getElementById('inv-submit-btn').textContent = 'Update Product';
     document.getElementById('inv-cancel-btn').classList.remove('hidden');
+    // Switch to inventory tab and scroll to form
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('inventory-tab').classList.remove('hidden');
+    document.querySelector('[data-tab="inventory-tab"]').classList.add('active');
+    document.getElementById('inv-form-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function resetInventoryForm() {
-    document.getElementById('inv_form_id').value = '';
-    document.getElementById('inv_form_name').value = '';
+    ['inv_form_id','inv_form_name','inv_form_quantity','inv_form_unit',
+     'inv_form_threshold','inv_form_supplier','inv_form_expiry'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
     document.getElementById('inv_form_category').value = 'Consumable';
-    document.getElementById('inv_form_quantity').value = '';
-    document.getElementById('inv_form_unit').value = '';
-    document.getElementById('inv_form_threshold').value = '';
-    document.getElementById('inv_form_supplier').value = '';
-    document.getElementById('inv_form_expiry').value = '';
-
-    document.getElementById('inv-form-title').innerText = "Register Product";
-    document.getElementById('inv-submit-btn').innerText = "Save Product";
+    document.getElementById('inv-form-title').textContent = 'Register Product';
+    document.getElementById('inv-submit-btn').textContent = 'Save Product';
     document.getElementById('inv-cancel-btn').classList.add('hidden');
   }
 </script>

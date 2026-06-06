@@ -14,6 +14,9 @@ class User(AbstractUser):
     location = models.CharField(max_length=255, blank=True)
     avatar = models.CharField(max_length=500, blank=True)
     must_change_password = models.BooleanField(default=False)
+    # Stores the plain-text initial password set by admin.
+    # Cleared to "" as soon as the staff member changes their own password.
+    initial_password = models.CharField(max_length=255, blank=True, default='')
 
     def __str__(self):
         return f'{self.username} ({self.role})'

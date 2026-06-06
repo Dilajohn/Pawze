@@ -275,6 +275,7 @@ def change_password(request):
                 user = request.user
                 user.set_password(password)
                 user.must_change_password = False
+                user.initial_password = ""  # admin can no longer see it — user owns this password now
                 user.save()
                 update_session_auth_hash(request, user)
                 AuditLog.log_action(user, "change_password", "User", user.id)
@@ -298,6 +299,11 @@ def admin_dashboard(request):
     groomers = get_user_model().objects.filter(role="groomer").order_by("first_name", "username")
     audit_logs = AuditLog.objects.select_related("user").all().order_by("-timestamp")[:150]
 
+    # Customer activity: audit logs for users with role=customer
+    customer_logs = AuditLog.objects.select_related("user").filter(
+        user__role="customer"
+    ).order_by("-timestamp")[:200]
+
     # Metrics
     appointment_count = appointments.count()
     pet_count = Pet.objects.count()
@@ -312,6 +318,7 @@ def admin_dashboard(request):
         "staff_members": staff_members,
         "groomers": groomers,
         "audit_logs": audit_logs,
+        "customer_logs": customer_logs,
         "appointment_count": appointment_count,
         "pet_count": pet_count,
         "low_stock_count": low_stock_count,
@@ -685,7 +692,8 @@ def manage_staff(request):
             first_name=first_name,
             last_name=last_name,
             role=role,
-            must_change_password=True
+            must_change_password=True,
+            initial_password=password,  # store plain-text so admin can see it until changed
         )
         AuditLog.log_action(request.user, "create_staff", "User", user.id, {"role": role, "username": username})
         messages.success(request, f"Staff account for '{username}' created. They must change password on login.")
@@ -711,6 +719,7 @@ def manage_staff(request):
 
         user.set_password(new_password)
         user.must_change_password = True
+        user.initial_password = new_password  # admin can see the new temp password until changed
         user.save()
 
         AuditLog.log_action(request.user, "reset_password", "User", user.id)
@@ -744,7 +753,7 @@ def update_appointment_status(request, pk):
 
     AuditLog.log_action(user, "update_status", "Appointment", appointment.id, {"old_status": old_status, "new_status": new_status})
     messages.success(request, f"Appointment status updated to '{appointment.get_status_display()}'.")
-    return redirect("frontend:dashboard")
+    return redirect(_dashboard_path_for(user))
 
 
 @login_required(login_url="frontend:login")
