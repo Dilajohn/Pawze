@@ -15,9 +15,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # Load .env when running under WSGI/ASGI hosts that don't call manage.py
+# Only load if a .env file actually exists — never overwrite env vars already set by the host
 try:
     from dotenv import load_dotenv
-    load_dotenv(PROJECT_ROOT / ".env")
+    _env_path = PROJECT_ROOT / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
 except ImportError:
     pass
 

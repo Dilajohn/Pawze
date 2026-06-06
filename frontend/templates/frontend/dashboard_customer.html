@@ -30,15 +30,12 @@
   </div>
 
   <!-- Dashboard Navigation Tabs -->
-  <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('appointments-tab', event)">Appointments</button>
-    <button class="tab-btn" onclick="switchTab('pets-tab', event)">My Pets ({{ pet_count }})</button>
-    <button class="tab-btn" onclick="switchTab('profile-tab', event)">Profile Settings</button>
-    <button class="tab-btn" onclick="switchTab('notifications-tab', event)">
-      Notifications 
-      {% if unread_notifications_count > 0 %}
-        <span class="badge">{{ unread_notifications_count }}</span>
-      {% endif %}
+  <div class="tabs-nav" id="customer-tabs-nav">
+    <button class="tab-btn active" data-tab="appointments-tab">Appointments</button>
+    <button class="tab-btn" data-tab="pets-tab">My Pets ({{ pet_count }})</button>
+    <button class="tab-btn" data-tab="profile-tab">Profile Settings</button>
+    <button class="tab-btn" data-tab="notifications-tab">
+      Notifications{% if unread_notifications_count > 0 %} ({{ unread_notifications_count }}){% endif %}
     </button>
   </div>
 
@@ -52,7 +49,7 @@
             <tr>
               <th>Pet</th>
               <th>Service</th>
-              <th>Date & Time</th>
+              <th>Date &amp; Time</th>
               <th>Groomer</th>
               <th>Status</th>
               <th>Action</th>
@@ -64,7 +61,13 @@
                 <td><strong>{{ appt.pet_name }}</strong></td>
                 <td>{{ appt.service.name|default:"Custom Grooming" }}</td>
                 <td>{{ appt.date }} at {{ appt.time|time:"H:i" }}</td>
-                <td>{{ appt.groomer.first_name|default:appt.groomer.username|default:"Unassigned" }}</td>
+                <td>
+                  {% if appt.groomer %}
+                    {{ appt.groomer.first_name|default:appt.groomer.username }}
+                  {% else %}
+                    <span style="color:var(--muted-soft)">Unassigned</span>
+                  {% endif %}
+                </td>
                 <td>
                   <span class="status-chip status-{{ appt.status }}">
                     {{ appt.get_status_display }}
@@ -75,39 +78,37 @@
                     {% if appt.feedback %}
                       <span class="rating-display">Rated: {{ appt.feedback.rating }} ★</span>
                     {% else %}
-                      <button class="button-action" onclick="showFeedbackForm('{{ appt.id }}', '{{ appt.pet_name }}', '{{ appt.groomer.first_name|default:appt.groomer.username }}')">Rate Groomer</button>
+                      <button class="button-action btn-sm" onclick="showFeedbackForm('{{ appt.id }}')">Rate Groomer</button>
                     {% endif %}
                   {% else %}
-                    <span class="text-muted">—</span>
+                    <span style="color:var(--muted-soft)">—</span>
                   {% endif %}
                 </td>
               </tr>
-              
-              <!-- Inline Feedback Form Container -->
+
               {% if appt.status == "completed" and not appt.feedback %}
               <tr id="feedback-row-{{ appt.id }}" class="feedback-form-row hidden">
                 <td colspan="6">
                   <form class="feedback-inline-form" method="post" action="{% url 'frontend:submit-feedback' appt.id %}">
                     {% csrf_token %}
                     <h3>Rate grooming service for {{ appt.pet_name }}</h3>
-                    <p class="text-muted">Groomer: {{ appt.groomer.first_name|default:appt.groomer.username }}</p>
-                    
+                    {% if appt.groomer %}
+                      <p style="color:var(--muted)">Groomer: {{ appt.groomer.first_name|default:appt.groomer.username }}</p>
+                    {% endif %}
                     <div class="rating-stars-input">
                       <span>Rating:</span>
                       <select name="rating" required>
-                        <option value="5">5 Stars (Excellent)</option>
-                        <option value="4">4 Stars (Good)</option>
-                        <option value="3">3 Stars (Average)</option>
-                        <option value="2">2 Stars (Poor)</option>
-                        <option value="1">1 Star (Very Bad)</option>
+                        <option value="5">5 Stars — Excellent</option>
+                        <option value="4">4 Stars — Good</option>
+                        <option value="3">3 Stars — Average</option>
+                        <option value="2">2 Stars — Poor</option>
+                        <option value="1">1 Star — Very Bad</option>
                       </select>
                     </div>
-                    
                     <label class="field">
                       <span>Comments</span>
                       <textarea name="comments" placeholder="Describe your experience..." rows="3"></textarea>
                     </label>
-                    
                     <div class="btn-group">
                       <button type="submit" class="button-primary">Submit Rating</button>
                       <button type="button" class="button-secondary" onclick="hideFeedbackForm('{{ appt.id }}')">Cancel</button>
@@ -130,7 +131,6 @@
   <!-- Pets Tab -->
   <div id="pets-tab" class="tab-content hidden">
     <div class="dashboard-grid">
-      <!-- Pets List -->
       <section class="dashboard-panel">
         <h2>My Pets</h2>
         <div class="pets-grid">
@@ -146,36 +146,36 @@
                 <p><strong>Notes:</strong> {{ pet.notes|default:"None" }}</p>
               </div>
               <div class="pet-actions">
-                <button class="button-secondary btn-sm" onclick="populatePetForm('{{ pet.id }}', '{{ pet.name|escapejs }}', '{{ pet.breed|escapejs }}', '{{ pet.age|escapejs }}', '{{ pet.weight|escapejs }}', '{{ pet.notes|escapejs }}')">Edit</button>
-                <form method="post" action="{% url 'frontend:delete-pet' pet.id %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this pet record?');">
+                <button class="button-secondary btn-sm"
+                  onclick="populatePetForm('{{ pet.id }}','{{ pet.name|escapejs }}','{{ pet.breed|escapejs }}','{{ pet.age|escapejs }}','{{ pet.weight|escapejs }}','{{ pet.notes|escapejs }}')">
+                  Edit
+                </button>
+                <form method="post" action="{% url 'frontend:delete-pet' pet.id %}" style="display:inline;"
+                  onsubmit="return confirm('Delete {{ pet.name|escapejs }}? This cannot be undone.');">
                   {% csrf_token %}
                   <button type="submit" class="button-danger btn-sm">Delete</button>
                 </form>
               </div>
             </article>
           {% empty %}
-            <p>No pets registered yet. Register your companion on the right to make booking faster.</p>
+            <p>No pets registered yet. Add your companion using the form on the right.</p>
           {% endfor %}
         </div>
       </section>
 
-      <!-- Add/Edit Pet Form -->
       <aside class="dashboard-panel">
         <h2 id="pet-form-title">Register a Pet</h2>
         <form class="panel-form" method="post" action="{% url 'frontend:manage-pet' %}">
           {% csrf_token %}
           <input type="hidden" name="pet_id" id="pet_form_id">
-          
           <label class="field">
             <span>Pet Name *</span>
             <input name="name" id="pet_form_name" required placeholder="Fido">
           </label>
-          
           <label class="field">
             <span>Breed</span>
             <input name="breed" id="pet_form_breed" placeholder="Golden Retriever">
           </label>
-
           <div class="form-row">
             <label class="field">
               <span>Age</span>
@@ -186,12 +186,10 @@
               <input name="weight" id="pet_form_weight" placeholder="12 kg">
             </label>
           </div>
-
           <label class="field">
             <span>Grooming / Medical Notes</span>
             <textarea name="notes" id="pet_form_notes" placeholder="Sensitive skin, afraid of dryers..." rows="3"></textarea>
           </label>
-
           <div class="btn-group">
             <button class="button-primary" type="submit" id="pet-submit-btn">Save Pet</button>
             <button class="button-secondary hidden" type="button" id="pet-cancel-btn" onclick="resetPetForm()">Cancel Edit</button>
@@ -208,7 +206,6 @@
       <form class="panel-form" method="post" action="{% url 'frontend:customer-dashboard' %}">
         {% csrf_token %}
         <input type="hidden" name="action" value="update_profile">
-        
         <div class="form-grid">
           <label class="field">
             <span>First Name</span>
@@ -264,33 +261,26 @@
   </div>
 </section>
 
-<!-- Tab Switching Script -->
 <script>
-  function switchTab(tabId, event) {
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(function(el) {
-      el.classList.add('hidden');
-    });
-    // Remove active class from buttons
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-      btn.classList.remove('active');
-    });
-    // Show select tab content
-    document.getElementById(tabId).classList.remove('hidden');
-    // Highlight button
-    if (event && event.currentTarget) {
-      event.currentTarget.classList.add('active');
-    }
-  }
+  // ── Tab switching ─────────────────────────────────────────────────────────
+  document.getElementById('customer-tabs-nav').addEventListener('click', function (e) {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('#customer-tabs-nav .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).classList.remove('hidden');
+    btn.classList.add('active');
+  });
 
+  // ── Feedback form ─────────────────────────────────────────────────────────
   function showFeedbackForm(apptId) {
     document.getElementById('feedback-row-' + apptId).classList.remove('hidden');
   }
-
   function hideFeedbackForm(apptId) {
     document.getElementById('feedback-row-' + apptId).classList.add('hidden');
   }
 
+  // ── Pet form populate / reset ─────────────────────────────────────────────
   function populatePetForm(id, name, breed, age, weight, notes) {
     document.getElementById('pet_form_id').value = id;
     document.getElementById('pet_form_name').value = name;
@@ -298,27 +288,21 @@
     document.getElementById('pet_form_age').value = age;
     document.getElementById('pet_form_weight').value = weight;
     document.getElementById('pet_form_notes').value = notes;
-    
-    document.getElementById('pet-form-title').innerText = "Edit Pet Profile";
-    document.getElementById('pet-submit-btn').innerText = "Update Pet";
+    document.getElementById('pet-form-title').textContent = 'Edit Pet Profile';
+    document.getElementById('pet-submit-btn').textContent = 'Update Pet';
     document.getElementById('pet-cancel-btn').classList.remove('hidden');
-    
-    // Switch to pet tab view if not visible
-    switchTab('pets-tab');
-    document.querySelector('[onclick="switchTab(\'pets-tab\')"]').classList.add('active');
-    document.querySelector('[onclick="switchTab(\'appointments-tab\')"]').classList.remove('active');
+    // Switch to pets tab
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('#customer-tabs-nav .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('pets-tab').classList.remove('hidden');
+    document.querySelector('[data-tab="pets-tab"]').classList.add('active');
   }
 
   function resetPetForm() {
-    document.getElementById('pet_form_id').value = '';
-    document.getElementById('pet_form_name').value = '';
-    document.getElementById('pet_form_breed').value = '';
-    document.getElementById('pet_form_age').value = '';
-    document.getElementById('pet_form_weight').value = '';
-    document.getElementById('pet_form_notes').value = '';
-    
-    document.getElementById('pet-form-title').innerText = "Register a Pet";
-    document.getElementById('pet-submit-btn').innerText = "Save Pet";
+    ['pet_form_id','pet_form_name','pet_form_breed','pet_form_age','pet_form_weight','pet_form_notes']
+      .forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('pet-form-title').textContent = 'Register a Pet';
+    document.getElementById('pet-submit-btn').textContent = 'Save Pet';
     document.getElementById('pet-cancel-btn').classList.add('hidden');
   }
 </script>
