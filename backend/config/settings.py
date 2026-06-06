@@ -37,10 +37,20 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
-# Trust Render's proxy headers; also include localhost for local dev
-CSRF_TRUSTED_ORIGINS = [
-    f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")
-] + ["http://localhost:8000", "http://127.0.0.1:8000"]
+# Build CSRF trusted origins — always include the production domain explicitly
+_extra_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = (
+    [o.strip() for o in _extra_origins.split(",") if o.strip()]
+    + [f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")]
+    + [
+        "https://pawze.onrender.com",   # production — always trusted
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+)
+# Deduplicate while preserving order
+seen = set()
+CSRF_TRUSTED_ORIGINS = [x for x in CSRF_TRUSTED_ORIGINS if not (x in seen or seen.add(x))]
 
 # Tell Django it's behind Render's HTTPS proxy
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
