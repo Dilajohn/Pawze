@@ -21,20 +21,24 @@
 }
 
 [data-theme="light"] {
-  --bg-app: #f7f1e8;
-  --panel: #fff9f2;
-  --card: #fffdf9;
-  --card-soft: rgba(78, 61, 39, 0.04);
-  --card-strong: rgba(78, 61, 39, 0.07);
-  --cream: #201a14;
-  --text-strong: #17130f;
-  --text-body: #2f2923;
-  --muted: rgba(47, 41, 35, 0.7);
-  --muted-soft: rgba(47, 41, 35, 0.52);
-  --border: rgba(78, 61, 39, 0.14);
-  --border-strong: rgba(78, 61, 39, 0.24);
-  --surface-soft: rgba(78, 61, 39, 0.05);
-  --shadow: rgba(85, 66, 44, 0.16);
+  /* Warm mid-tone base — not white, not cream, just easy on the eyes */
+  --bg-app: #e8e0d4;
+  --panel: #ded6c9;
+  --card: #e2dace;
+  --card-soft: rgba(60, 46, 30, 0.05);
+  --card-strong: rgba(60, 46, 30, 0.09);
+  --cream: #2a2218;
+  --text-strong: #1e1810;
+  --text-body: #3a3026;
+  --muted: rgba(42, 34, 24, 0.65);
+  --muted-soft: rgba(42, 34, 24, 0.45);
+  --border: rgba(60, 46, 30, 0.16);
+  --border-strong: rgba(60, 46, 30, 0.28);
+  --surface-soft: rgba(60, 46, 30, 0.07);
+  --shadow: rgba(60, 46, 30, 0.14);
+  /* Slightly deeper accent tones to maintain contrast on the darker base */
+  --sage: #4e8a3f;
+  --warm: #b87d35;
 }
 
 * {
