@@ -40,6 +40,9 @@ CSRF_TRUSTED_ORIGINS = [
     f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")
 ] + ["http://localhost:8000", "http://127.0.0.1:8000"]
 
+# Tell Django it's behind Render's HTTPS proxy
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 AUTH_USER_MODEL = "api.User"
 
 INSTALLED_APPS = [
