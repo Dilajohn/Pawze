@@ -65,7 +65,13 @@
                 <td>{{ appt.service.name|default:"Custom Service" }}</td>
                 <td>{{ appt.customer_name }}</td>
                 <td>{{ appt.date }} at {{ appt.time|time:"H:i" }}</td>
-                <td><strong>{{ appt.groomer.first_name|default:appt.groomer.username|default:"Unassigned" }}</strong></td>
+                <td>
+                  {% if appt.groomer %}
+                    <strong>{{ appt.groomer.first_name|default:appt.groomer.username }}</strong>
+                  {% else %}
+                    <span style="color:var(--muted-soft)">Unassigned</span>
+                  {% endif %}
+                </td>
                 <td>
                   <form method="post" action="{% url 'frontend:assign-appointment-groomer' appt.id %}">
                     {% csrf_token %}
