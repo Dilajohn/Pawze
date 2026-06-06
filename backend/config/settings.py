@@ -14,6 +14,13 @@ PROJECT_ROOT = BASE_DIR.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Load .env when running under WSGI/ASGI hosts that don't call manage.py
+try:
+    from dotenv import load_dotenv
+    load_dotenv(PROJECT_ROOT / ".env")
+except ImportError:
+    pass
+
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure--y475*gzit$pe01r7a0t^1xv7em8+-$98_zco&&!677=-dcs9g",
@@ -25,10 +32,10 @@ ALLOWED_HOSTS = os.environ.get(
     "ALLOWED_HOSTS", "localhost,127.0.0.1"
 ).split(",")
 
-# Trust Render's proxy headers
+# Trust Render's proxy headers; also include localhost for local dev
 CSRF_TRUSTED_ORIGINS = [
     f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")
-]
+] + ["http://localhost:8000", "http://127.0.0.1:8000"]
 
 AUTH_USER_MODEL = "api.User"
 

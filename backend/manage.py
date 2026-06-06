@@ -2,10 +2,18 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
 
 
 def main():
     """Run administrative tasks."""
+    # Load .env file so environment variables are available before Django starts
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+    except ImportError:
+        pass  # python-dotenv not installed; rely on actual environment variables
+
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     try:

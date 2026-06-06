@@ -151,24 +151,6 @@ class PetViewSet(viewsets.ModelViewSet):
             return
         serializer.save()
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = Pet.objects.select_related("owner")
-        if user.role == "customer":
-            return queryset.filter(owner=user)
-        return queryset
-
-    def get_permissions(self):
-        if self.action in ("update", "partial_update", "destroy", "retrieve"):
-            return [IsOwnerOrStaff()]
-        return [IsAuthenticated()]
-
-    def perform_create(self, serializer):
-        if self.request.user.role == "customer":
-            serializer.save(owner=self.request.user)
-            return
-        serializer.save()
-
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     serializer_class = AppointmentSerializer
