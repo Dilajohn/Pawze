@@ -1,4 +1,5 @@
 from django.contrib import messages
+from datetime import time as dtime
 from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
@@ -88,43 +89,61 @@ def book(request):
         if not all([service, appointment_date, appointment_time, owner_name, pet_name, breed]):
             messages.error(request, "Please complete all required booking fields.")
         else:
-            pet = None
-            if request.user.is_authenticated and request.user.role == "customer":
-                pet, _ = Pet.objects.get_or_create(
-                    owner=request.user,
-                    name=pet_name,
-                    defaults={
-                        "breed": breed,
-                        "age": request.POST.get("age", ""),
-                        "weight": request.POST.get("weight", ""),
-                        "notes": request.POST.get("notes", ""),
-                    },
-                )
+            try:
+                date_obj = timezone.datetime.strptime(appointment_date, "%Y-%m-%d").date()
+                time_obj = timezone.datetime.strptime(appointment_time, "%H:%M").time()
+            except ValueError:
+                messages.error(request, "Enter a valid appointment date and time.")
+            else:
+                if date_obj < timezone.localdate():
+                    messages.error(request, "Appointment date must be today or in the future.")
+                elif not (dtime(9, 0) <= time_obj <= dtime(18, 0)):
+                    messages.error(request, "Appointment time must be between 09:00 and 18:00.")
+                else:
+                    pet = None
+                    if request.user.is_authenticated and request.user.role == "customer":
+                        pet, created = Pet.objects.get_or_create(
+                            owner=request.user,
+                            name=pet_name,
+                            defaults={
+                                "breed": breed,
+                                "age": request.POST.get("age", ""),
+                                "weight": request.POST.get("weight", ""),
+                                "notes": request.POST.get("notes", ""),
+                            },
+                        )
+                        if not created:
+                            pet.breed = breed
+                            pet.age = request.POST.get("age", "")
+                            pet.weight = request.POST.get("weight", "")
+                            pet.notes = request.POST.get("notes", "")
+                            pet.save()
 
-            notes = ". ".join(
-                item
-                for item in [
-                    f"Breed: {breed}",
-                    f"Age: {request.POST.get('age', '').strip()}" if request.POST.get("age") else "",
-                    f"Weight: {request.POST.get('weight', '').strip()}" if request.POST.get("weight") else "",
-                    f"Contact: {request.POST.get('email', '').strip()} / {request.POST.get('phone', '').strip()}",
-                    request.POST.get("notes", "").strip(),
-                ]
-                if item
-            )
+                    notes = ". ".join(
+                        item
+                        for item in [
+                            f"Breed: {breed}",
+                            f"Age: {request.POST.get('age', '').strip()}" if request.POST.get("age") else "",
+                            f"Weight: {request.POST.get('weight', '').strip()}" if request.POST.get("weight") else "",
+                            f"Contact: {request.POST.get('email', '').strip()} / {request.POST.get('phone', '').strip()}",
+                            request.POST.get("notes", "").strip(),
+                        ]
+                        if item
+                    )
 
-            Appointment.objects.create(
-                customer=request.user if request.user.is_authenticated else None,
-                customer_name=owner_name,
-                pet=pet,
-                pet_name=pet_name,
-                service=service,
-                date=appointment_date,
-                time=appointment_time,
-                notes=notes,
-            )
-            messages.success(request, "Booking request sent. Staff will confirm the appointment soon.")
-            return redirect("frontend:book")
+                    customer = request.user if (request.user.is_authenticated and request.user.role == "customer") else None
+                    Appointment.objects.create(
+                        customer=customer,
+                        customer_name=owner_name,
+                        pet=pet,
+                        pet_name=pet_name,
+                        service=service,
+                        date=date_obj,
+                        time=time_obj,
+                        notes=notes,
+                    )
+                    messages.success(request, "Booking request sent. Staff will confirm the appointment soon.")
+                    return redirect("frontend:book")
 
     return render(
         request,
@@ -276,6 +295,7 @@ def admin_dashboard(request):
     inventory = InventoryItem.objects.all().order_by("name")
     restock_requests = RestockRequest.objects.select_related("item").all().order_by("-created_at")
     staff_members = get_user_model().objects.filter(role__in=["admin", "groomer"]).order_by("username")
+    groomers = get_user_model().objects.filter(role="groomer").order_by("first_name", "username")
     audit_logs = AuditLog.objects.select_related("user").all().order_by("-timestamp")[:150]
 
     # Metrics
@@ -290,6 +310,7 @@ def admin_dashboard(request):
         "inventory": inventory,
         "restock_requests": restock_requests,
         "staff_members": staff_members,
+        "groomers": groomers,
         "audit_logs": audit_logs,
         "appointment_count": appointment_count,
         "pet_count": pet_count,
@@ -331,6 +352,32 @@ def customer_dashboard(request):
         return redirect(_dashboard_path_for(request.user))
     if request.user.must_change_password:
         return redirect("frontend:change-password")
+
+    if request.method == "POST" and request.POST.get("action") == "update_profile":
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        email = request.POST.get("email", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        location = request.POST.get("location", "").strip()
+
+        if not email:
+            messages.error(request, "Email address is required.")
+            return redirect("frontend:customer-dashboard")
+
+        if get_user_model().objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
+            messages.error(request, "That email is already associated with another account.")
+            return redirect("frontend:customer-dashboard")
+
+        user = request.user
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.phone = phone
+        user.location = location
+        user.save(update_fields=["first_name", "last_name", "email", "phone", "location"])
+        AuditLog.log_action(user, "update_profile", "User", user.id)
+        messages.success(request, "Your profile has been updated.")
+        return redirect("frontend:customer-dashboard")
 
     appointments = Appointment.objects.filter(customer=request.user).select_related("service", "groomer", "pet").order_by("-date", "-time")
     pets = Pet.objects.filter(owner=request.user).order_by("name")
@@ -652,8 +699,14 @@ def manage_staff(request):
             messages.error(request, "Cannot reset password for customers from here.")
             return redirect("frontend:admin-dashboard")
 
-        if not new_password or len(new_password) < 8:
-            messages.error(request, "Password must be at least 8 characters.")
+        if not new_password:
+            messages.error(request, "Password is required.")
+            return redirect("frontend:admin-dashboard")
+
+        try:
+            validate_password(new_password)
+        except ValidationError as error:
+            messages.error(request, " ".join(error.messages))
             return redirect("frontend:admin-dashboard")
 
         user.set_password(new_password)
@@ -692,6 +745,42 @@ def update_appointment_status(request, pk):
     AuditLog.log_action(user, "update_status", "Appointment", appointment.id, {"old_status": old_status, "new_status": new_status})
     messages.success(request, f"Appointment status updated to '{appointment.get_status_display()}'.")
     return redirect("frontend:dashboard")
+
+
+@login_required(login_url="frontend:login")
+@require_http_methods(["POST"])
+def assign_appointment_groomer(request, pk):
+    if request.user.role != "admin":
+        return redirect("frontend:dashboard")
+
+    appointment = get_object_or_404(Appointment, pk=pk)
+    groomer_id = request.POST.get("groomer_id")
+    if not groomer_id:
+        messages.error(request, "Please select a groomer to assign.")
+        return redirect("frontend:admin-dashboard")
+
+    groomer = get_user_model().objects.filter(pk=groomer_id, role="groomer").first()
+    if groomer is None:
+        messages.error(request, "Selected groomer is not valid.")
+        return redirect("frontend:admin-dashboard")
+
+    old_groomer = appointment.groomer
+    appointment.groomer = groomer
+    if appointment.status == "pending":
+        appointment.status = "confirmed"
+        appointment.save(update_fields=["groomer", "status"])
+    else:
+        appointment.save(update_fields=["groomer"])
+
+    AuditLog.log_action(
+        request.user,
+        "assign_groomer",
+        "Appointment",
+        appointment.id,
+        {"old_groomer": old_groomer.username if old_groomer else None, "new_groomer": groomer.username},
+    )
+    messages.success(request, f"Groomer '{groomer.get_full_name() or groomer.username}' assigned to the appointment.")
+    return redirect("frontend:admin-dashboard")
 
 
 @login_required(login_url="frontend:login")

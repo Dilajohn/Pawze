@@ -1,5 +1,5 @@
 import re
-from datetime import date, time as dtime
+from datetime import date, datetime, time as dtime, timedelta
 
 import bleach
 from django.contrib.auth.password_validation import validate_password
@@ -183,7 +183,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
         fields = '__all__'
-        read_only_fields = ['created_at', 'customer']
+        read_only_fields = ['created_at', 'customer', 'status', 'groomer']
 
     def validate_notes(self, value):
         return sanitize(value)
@@ -205,25 +205,33 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        groomer = attrs.get('groomer')
-        appt_date = attrs.get('date')
-        appt_time = attrs.get('time')
+        groomer = attrs.get('groomer') or getattr(self.instance, 'groomer', None)
+        appt_date = attrs.get('date') or getattr(self.instance, 'date', None)
+        appt_time = attrs.get('time') or getattr(self.instance, 'time', None)
+        service = attrs.get('service') or getattr(self.instance, 'service', None)
         instance_id = self.instance.id if self.instance else None
 
-        if groomer and appt_date and appt_time:
+        if groomer and appt_date and appt_time and service:
+            service_duration = getattr(service, 'duration', 0) or 0
+            start_dt = datetime.combine(appt_date, appt_time)
+            end_dt = start_dt + timedelta(minutes=service_duration)
+
             conflict_qs = Appointment.objects.filter(
                 groomer=groomer,
                 date=appt_date,
-                time=appt_time,
             ).exclude(status__in=['cancelled', 'completed'])
 
             if instance_id:
                 conflict_qs = conflict_qs.exclude(id=instance_id)
 
-            if conflict_qs.exists():
-                raise serializers.ValidationError(
-                    {'groomer': 'This groomer already has a booking at the selected date and time.'}
-                )
+            for conflict in conflict_qs:
+                existing_start = datetime.combine(conflict.date, conflict.time)
+                existing_duration = getattr(conflict.service, 'duration', 0) or 0
+                existing_end = existing_start + timedelta(minutes=existing_duration)
+                if existing_start < end_dt and existing_end > start_dt:
+                    raise serializers.ValidationError(
+                        {'groomer': 'This groomer already has a booking that overlaps the requested time.'}
+                    )
 
         return attrs
 

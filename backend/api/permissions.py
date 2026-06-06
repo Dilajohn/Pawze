@@ -62,3 +62,12 @@ class IsSelfOrAdmin(BasePermission):
         if request.user.role == 'admin':
             return True
         return getattr(obj, 'id', None) == request.user.id
+
+
+class IsPasswordChangeComplete(BasePermission):
+    """Block access when authenticated users still need to change their password."""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return True
+        return not getattr(request.user, 'must_change_password', False)

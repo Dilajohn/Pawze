@@ -19,7 +19,7 @@ DEMO_USERS = [
     {
         'username': 'admin_demo',
         'email': 'admin@pawze.local',
-        'password': 'DemoAdmin1!',
+        'password': 'PawzeAdmin2026!',
         'first_name': 'Ariana',
         'last_name': 'Cruz',
         'role': 'admin',
@@ -75,10 +75,15 @@ class Command(BaseCommand):
                 username=username,
                 defaults={**data, 'is_staff': is_staff, 'is_superuser': is_superuser},
             )
-            if created:
+            if created or not user.check_password(password):
+                user.is_staff = is_staff
+                user.is_superuser = is_superuser
+                for field, value in data.items():
+                    setattr(user, field, value)
                 user.set_password(password)
                 user.save()
-                self.stdout.write(f'  User "{username}" ({user.role}) — created  [password: {password}]')
+                status_label = 'created' if created else 'updated password'
+                self.stdout.write(f'  User "{username}" ({user.role}) — {status_label}  [password: {password}]')
             else:
                 self.stdout.write(f'  User "{username}" — already exists')
 

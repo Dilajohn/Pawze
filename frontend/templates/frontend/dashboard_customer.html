@@ -31,10 +31,10 @@
 
   <!-- Dashboard Navigation Tabs -->
   <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('appointments-tab')">Appointments</button>
-    <button class="tab-btn" onclick="switchTab('pets-tab')">My Pets ({{ pet_count }})</button>
-    <button class="tab-btn" onclick="switchTab('profile-tab')">Profile Settings</button>
-    <button class="tab-btn" onclick="switchTab('notifications-tab')">
+    <button class="tab-btn active" onclick="switchTab('appointments-tab', event)">Appointments</button>
+    <button class="tab-btn" onclick="switchTab('pets-tab', event)">My Pets ({{ pet_count }})</button>
+    <button class="tab-btn" onclick="switchTab('profile-tab', event)">Profile Settings</button>
+    <button class="tab-btn" onclick="switchTab('notifications-tab', event)">
       Notifications 
       {% if unread_notifications_count > 0 %}
         <span class="badge">{{ unread_notifications_count }}</span>
@@ -266,7 +266,7 @@
 
 <!-- Tab Switching Script -->
 <script>
-  function switchTab(tabId) {
+  function switchTab(tabId, event) {
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(function(el) {
       el.classList.add('hidden');
@@ -278,7 +278,9 @@
     // Show select tab content
     document.getElementById(tabId).classList.remove('hidden');
     // Highlight button
-    event.currentTarget.classList.add('active');
+    if (event && event.currentTarget) {
+      event.currentTarget.classList.add('active');
+    }
   }
 
   function showFeedbackForm(apptId) {

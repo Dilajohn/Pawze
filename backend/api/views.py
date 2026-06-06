@@ -1,9 +1,13 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.db.models import F
-from rest_framework import generics, status, viewsets
+from rest_framework import generics, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -23,6 +27,7 @@ from .permissions import (
     IsAdminUserRole,
     IsGroomerUserRole,
     IsOwnerOrStaff,
+    IsPasswordChangeComplete,
     IsSelfOrAdmin,
     IsStaffRole,
 )
@@ -95,14 +100,13 @@ class RegisterView(generics.CreateAPIView):
         )
 
 
-class ChangePasswordView(generics.UpdateAPIView):
+class ChangePasswordView(APIView):
     """POST /api/auth/change-password/ - change own password."""
 
-    serializer_class = ChangePasswordSerializer
     permission_classes = [IsAuthenticated]
 
-    def update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+    def post(self, request, *args, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
@@ -123,12 +127,29 @@ class ServiceViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
             return [AllowAny()]
-        return [IsAdminUserRole()]
+        return [IsAdminUserRole(), IsPasswordChangeComplete()]
 
 
 class PetViewSet(viewsets.ModelViewSet):
     serializer_class = PetSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Pet.objects.select_related("owner")
+        if user.role == "customer":
+            return queryset.filter(owner=user)
+        return queryset
+
+    def get_permissions(self):
+        if self.action in ("update", "partial_update", "destroy", "retrieve"):
+            return [IsOwnerOrStaff(), IsPasswordChangeComplete()]
+        return [IsAuthenticated(), IsPasswordChangeComplete()]
+
+    def perform_create(self, serializer):
+        if self.request.user.role == "customer":
+            serializer.save(owner=self.request.user)
+            return
+        serializer.save()
 
     def get_queryset(self):
         user = self.request.user
@@ -165,16 +186,21 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return [AllowAny()]
         if self.action in ("update", "partial_update", "destroy"):
-            return [IsOwnerOrStaff()]
-        return [IsAuthenticated()]
+            return [IsOwnerOrStaff(), IsPasswordChangeComplete()]
+        if self.action in ("feedback", "update_status"):
+            return [IsAuthenticated(), IsPasswordChangeComplete()]
+        return [IsAuthenticated(), IsPasswordChangeComplete()]
 
     def perform_create(self, serializer):
-        user = self.request.user if self.request.user.is_authenticated else None
+        user = self.request.user if (self.request.user.is_authenticated and self.request.user.role == "customer") else None
         serializer.save(customer=user)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsPasswordChangeComplete])
     def feedback(self, request, pk=None):
         appointment = self.get_object()
+
+        if appointment.customer != request.user:
+            return Response({"detail": "You may only submit feedback for your own completed appointment."}, status=status.HTTP_403_FORBIDDEN)
 
         if appointment.status != "completed":
             return Response(
@@ -193,7 +219,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         serializer.save(appointment=appointment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["patch"], permission_classes=[IsStaffRole])
+    @action(detail=True, methods=["patch"], permission_classes=[IsStaffRole, IsPasswordChangeComplete])
     def update_status(self, request, pk=None):
         appointment = self.get_object()
         new_status = request.data.get("status")
@@ -209,7 +235,11 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve", "mark_read"):
+            return [IsAuthenticated(), IsPasswordChangeComplete()]
+        return [IsAdminUserRole(), IsPasswordChangeComplete()]
 
     def get_queryset(self):
         user = self.request.user
@@ -218,7 +248,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
             return queryset
         return queryset.filter(user=user)
 
-    @action(detail=True, methods=["patch"])
+    @action(detail=True, methods=["patch"], permission_classes=[IsAuthenticated, IsPasswordChangeComplete])
     def mark_read(self, request, pk=None):
         notif = self.get_object()
         notif.is_read = True
@@ -229,7 +259,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 class InventoryItemViewSet(viewsets.ModelViewSet):
     queryset = InventoryItem.objects.all()
     serializer_class = InventoryItemSerializer
-    permission_classes = [IsStaffRole]
+    permission_classes = [IsStaffRole, IsPasswordChangeComplete]
 
     @action(detail=False, methods=["get"])
     def low_stock(self, request):
@@ -241,7 +271,31 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
 class RestockRequestViewSet(viewsets.ModelViewSet):
     queryset = RestockRequest.objects.select_related("item").all()
     serializer_class = RestockRequestSerializer
-    permission_classes = [IsStaffRole]
+    permission_classes = [IsStaffRole, IsPasswordChangeComplete]
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminUserRole, IsPasswordChangeComplete])
+    def approve(self, request, pk=None):
+        req = self.get_object()
+        if req.status != "pending":
+            return Response({"detail": "Restock request is not pending."}, status=status.HTTP_400_BAD_REQUEST)
+
+        req.status = "approved"
+        req.save(update_fields=["status"])
+        return Response(RestockRequestSerializer(req).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminUserRole, IsPasswordChangeComplete])
+    def complete(self, request, pk=None):
+        req = self.get_object()
+        if req.status != "approved":
+            return Response({"detail": "Restock request must be approved first."}, status=status.HTTP_400_BAD_REQUEST)
+
+        item = req.item
+        item.quantity += req.quantity
+        item.save(update_fields=["quantity"])
+
+        req.status = "completed"
+        req.save(update_fields=["status"])
+        return Response(RestockRequestSerializer(req).data)
 
 
 class InventoryUsageLogViewSet(viewsets.ModelViewSet):
@@ -250,14 +304,24 @@ class InventoryUsageLogViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
-            return [IsStaffRole()]
-        return [IsGroomerUserRole()]
+            return [IsStaffRole(), IsPasswordChangeComplete()]
+        return [IsGroomerUserRole(), IsPasswordChangeComplete()]
 
     def perform_create(self, serializer):
-        log = serializer.save(groomer=self.request.user)
-        item = log.item
-        item.quantity = max(0, item.quantity - log.quantity_used)
-        item.save(update_fields=["quantity"])
+        item = serializer.validated_data["item"]
+        quantity_used = serializer.validated_data["quantity_used"]
+
+        with transaction.atomic():
+            item = InventoryItem.objects.select_for_update().get(pk=item.pk)
+            if item.quantity < quantity_used:
+                raise serializers.ValidationError(
+                    {"quantity_used": "Not enough stock to log this usage."}
+                )
+
+            log = serializer.save(groomer=self.request.user)
+            item.quantity -= quantity_used
+            item.save(update_fields=["quantity"])
+            return log
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -271,10 +335,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ("list", "create", "destroy", "reset_password"):
-            return [IsAdminUserRole()]
+            return [IsAdminUserRole(), IsPasswordChangeComplete()]
         if self.action == "me":
-            return [IsAuthenticated()]
-        return [IsSelfOrAdmin()]
+            return [IsAuthenticated(), IsPasswordChangeComplete()]
+        return [IsSelfOrAdmin(), IsPasswordChangeComplete()]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -301,11 +365,16 @@ class UserViewSet(viewsets.ModelViewSet):
         target = self.get_object()
         new_password = request.data.get("new_password")
 
-        if not new_password or len(new_password) < 8:
+        if not new_password:
             return Response(
-                {"detail": "Password must be at least 8 characters."},
+                {"detail": "Password is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        try:
+            validate_password(new_password, target)
+        except DjangoValidationError as exc:
+            return Response({"new_password": list(exc.messages)}, status=status.HTTP_400_BAD_REQUEST)
 
         target.set_password(new_password)
         target.must_change_password = True
